@@ -5,7 +5,7 @@ use specs::prelude::*;
 
 use crate::{
     components::{Player, Position},
-    map::{xy_idx, Map, TileType},
+    map::{Map, TileType},
 };
 
 pub fn try_move_player(delta_x: i32, delta_y: i32, world: &mut World) {
@@ -14,8 +14,8 @@ pub fn try_move_player(delta_x: i32, delta_y: i32, world: &mut World) {
     let map = world.fetch::<Map>();
 
     for (_player, pos) in (&mut players, &mut positions).join() {
-        let destination_idx = xy_idx(pos.x + delta_x, pos.y + delta_y);
-        if map[destination_idx] != TileType::Wall {
+        let destination_idx = map.xy_idx(pos.x + delta_x, pos.y + delta_y);
+        if map.tiles[destination_idx] != TileType::Wall {
             pos.x = min(79, max(0, pos.x + delta_x));
             pos.y = min(49, max(0, pos.y + delta_y));
         }
