@@ -11,6 +11,8 @@ use map::*;
 mod player;
 use player::*;
 
+mod rect;
+
 pub struct State {
     pub world: World,
 }
@@ -53,12 +55,17 @@ fn main() -> rltk::BError {
     game_state.world.register::<Renderable>();
     game_state.world.register::<Player>();
 
-    game_state.world.insert(new_map());
+    let (rooms, map) = new_map_rooms_and_corridors();
+    game_state.world.insert(map);
+    let (player_x, player_y) = rooms[0].center();
 
     game_state
         .world
         .create_entity()
-        .with(Position { x: 40, y: 25 })
+        .with(Position {
+            x: player_x,
+            y: player_y,
+        })
         .with(Player {})
         .with(Renderable {
             glyph: rltk::to_cp437('@'),

@@ -26,10 +26,18 @@ pub fn player_input(world: &mut World, ctx: &mut Rltk) {
     match ctx.key {
         None => {}
         Some(key) => match key {
-            VirtualKeyCode::Left => try_move_player(-1, 0, world),
-            VirtualKeyCode::Right => try_move_player(1, 0, world),
-            VirtualKeyCode::Up => try_move_player(0, -1, world),
-            VirtualKeyCode::Down => try_move_player(0, 1, world),
+            VirtualKeyCode::Left | VirtualKeyCode::Numpad4 | VirtualKeyCode::H => {
+                try_move_player(-1, 0, world)
+            }
+            VirtualKeyCode::Right | VirtualKeyCode::Numpad6 | VirtualKeyCode::L => {
+                try_move_player(1, 0, world)
+            }
+            VirtualKeyCode::Up | VirtualKeyCode::Numpad8 | VirtualKeyCode::K => {
+                try_move_player(0, -1, world)
+            }
+            VirtualKeyCode::Down | VirtualKeyCode::Numpad2 | VirtualKeyCode::J => {
+                try_move_player(0, 1, world)
+            }
             _ => {}
         },
     }
