@@ -19,15 +19,25 @@ use visibility_system::VisibilitySystem;
 mod monster_ai_system;
 use monster_ai_system::MonsterAI;
 
+mod map_indexing_system;
+use map_indexing_system::MapIndexingSystem;
+
+mod melee_combat_system;
+use melee_combat_system::MeleeCombatSystem;
+
+mod damage_system;
+use damage_system::DamageSystem;
+
 #[derive(PartialEq, Copy, Clone)]
 pub enum RunState {
-    Paused,
-    Running,
+    AwaitingInput,
+    PreRun,
+    PlayerTurn,
+    MonsterTurn,
 }
 
 pub struct State {
     pub world: World,
-    pub run_state: RunState,
 }
 
 impl State {
@@ -38,6 +48,15 @@ impl State {
         let mut monster_ai = MonsterAI {};
         monster_ai.run_now(&self.world);
 
+        let mut map_indexing = MapIndexingSystem {};
+        map_indexing.run_now(&self.world);
+
+        let mut melee_combat = MeleeCombatSystem {};
+        melee_combat.run_now(&self.world);
+
+        let mut damage = DamageSystem {};
+        damage.run_now(&self.world);
+
         self.world.maintain();
     }
 }
@@ -46,27 +65,49 @@ impl GameState for State {
     fn tick(&mut self, ctx: &mut Rltk) {
         ctx.cls();
 
-        if self.run_state == RunState::Running {
-            self.run_systems();
-            self.run_state = RunState::Paused;
-        } else {
-            self.run_state = if player_input(&mut self.world, ctx) {
-                RunState::Paused
-            } else {
-                RunState::Running
+        let mut new_run_state = *self.world.fetch::<RunState>();
+
+        match new_run_state {
+            RunState::PreRun => {
+                self.run_systems();
+                new_run_state = RunState::AwaitingInput;
             }
+            RunState::AwaitingInput => {
+                self.run_systems();
+                new_run_state = if player_input(&mut self.world, ctx) {
+                    RunState::AwaitingInput
+                } else {
+                    RunState::PreRun
+                }
+            }
+            RunState::PlayerTurn => {
+                self.run_systems();
+                new_run_state = RunState::MonsterTurn;
+            }
+            RunState::MonsterTurn => {
+                self.run_systems();
+                new_run_state = RunState::AwaitingInput;
+            }
+        };
+        {
+            let mut run_writer = self.world.write_resource::<RunState>();
+            *run_writer = new_run_state;
         }
+
+        damage_system::delete_the_dead(&mut self.world);
 
         draw_map(&self.world, ctx);
 
-        let positions = self.world.read_storage::<Position>();
-        let renderables = self.world.read_storage::<Renderable>();
-        let map = self.world.fetch::<Map>();
+        {
+            let positions = self.world.read_storage::<Position>();
+            let renderables = self.world.read_storage::<Renderable>();
+            let map = self.world.fetch::<Map>();
 
-        for (pos, render) in (&positions, &renderables).join() {
-            let idx = map.xy_idx(pos.x, pos.y);
-            if map.visible_tiles[idx] {
-                ctx.set(pos.x, pos.y, render.fg, render.bg, render.glyph);
+            for (pos, render) in (&positions, &renderables).join() {
+                let idx = map.xy_idx(pos.x, pos.y);
+                if map.visible_tiles[idx] {
+                    ctx.set(pos.x, pos.y, render.fg, render.bg, render.glyph);
+                }
             }
         }
     }
@@ -80,7 +121,6 @@ fn main() -> rltk::BError {
         .build()?;
     let mut game_state = State {
         world: World::new(),
-        run_state: RunState::Running,
     };
     game_state.world.register::<Position>();
     game_state.world.register::<Renderable>();
@@ -88,6 +128,12 @@ fn main() -> rltk::BError {
     game_state.world.register::<Monster>();
     game_state.world.register::<Name>();
     game_state.world.register::<Viewshed>();
+    game_state.world.register::<BlocksTile>();
+    game_state.world.register::<CombatStats>();
+    game_state.world.register::<WantsToMelee>();
+    game_state.world.register::<SufferDamage>();
+
+    game_state.world.insert(RunState::PreRun);
 
     let map = Map::new_map_rooms_and_corridors();
 
@@ -116,11 +162,18 @@ fn main() -> rltk::BError {
             .with(Name {
                 name: format!("{} #{}", &name, i),
             })
+            .with(CombatStats {
+                max_hp: 16,
+                hp: 16,
+                defense: 1,
+                power: 4,
+            })
             .with(Viewshed {
                 visible_tiles: Vec::new(),
                 range: 8,
                 dirty: true,
             })
+            .with(BlocksTile {})
             .with(Renderable {
                 glyph: glyph,
                 fg: RGB::named(rltk::RED),
@@ -134,7 +187,7 @@ fn main() -> rltk::BError {
 
     game_state.world.insert(map);
 
-    game_state
+    let player_entity = game_state
         .world
         .create_entity()
         .with(Position {
@@ -144,6 +197,12 @@ fn main() -> rltk::BError {
         .with(Player {})
         .with(Name {
             name: "Player".to_string(),
+        })
+        .with(CombatStats {
+            max_hp: 30,
+            hp: 30,
+            defense: 2,
+            power: 5,
         })
         .with(Viewshed {
             visible_tiles: Vec::new(),
@@ -156,6 +215,7 @@ fn main() -> rltk::BError {
             bg: RGB::named(rltk::BLACK),
         })
         .build();
+    game_state.world.insert(player_entity);
 
     rltk::main_loop(context, game_state)
 }
