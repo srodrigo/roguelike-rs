@@ -82,7 +82,7 @@ impl GameState for State {
                 new_run_state = if player_input(&mut self.world, ctx) {
                     RunState::AwaitingInput
                 } else {
-                    RunState::PreRun
+                    RunState::PlayerTurn
                 }
             }
             RunState::PlayerTurn => {
