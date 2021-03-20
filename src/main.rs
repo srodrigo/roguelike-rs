@@ -13,6 +13,11 @@ use player::*;
 
 mod rect;
 
+mod gui;
+
+mod gamelog;
+use gamelog::GameLog;
+
 mod visibility_system;
 use visibility_system::VisibilitySystem;
 
@@ -110,6 +115,8 @@ impl GameState for State {
                 }
             }
         }
+
+        gui::draw_ui(&self.world, ctx);
     }
 }
 
@@ -119,6 +126,7 @@ fn main() -> rltk::BError {
     let context = RltkBuilder::simple80x50()
         .with_title("Roguelike Tutorial")
         .build()?;
+
     let mut game_state = State {
         world: World::new(),
     };
@@ -216,6 +224,10 @@ fn main() -> rltk::BError {
         })
         .build();
     game_state.world.insert(player_entity);
+
+    game_state.world.insert(GameLog {
+        entries: vec!["Welcome to Rusty Roguelike".to_string()],
+    });
 
     rltk::main_loop(context, game_state)
 }

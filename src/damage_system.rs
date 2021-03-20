@@ -1,4 +1,7 @@
-use crate::components::{CombatStats, Player, SufferDamage};
+use crate::{
+    components::{CombatStats, Name, Player, SufferDamage},
+    gamelog::GameLog,
+};
 use rltk::console;
 use specs::prelude::*;
 
@@ -27,12 +30,19 @@ pub fn delete_the_dead(world: &mut World) {
     {
         let combat_stats = world.read_storage::<CombatStats>();
         let players = world.read_storage::<Player>();
+        let names = world.read_storage::<Name>();
         let entities = world.entities();
+        let mut log = world.write_resource::<GameLog>();
         for (entity, stats) in (&entities, &combat_stats).join() {
             if stats.hp < 1 {
                 match players.get(entity) {
-                    None => dead.push(entity),
-                    Some(_) => console::log("You are dead"),
+                    None => {
+                        if let Some(victim_name) = names.get(entity) {
+                            log.entries.push(format!("{} is dead", &&victim_name.name));
+                        }
+                        dead.push(entity)
+                    }
+                    Some(_) => log.entries.push("You are dead".to_string()),
                 }
             }
         }

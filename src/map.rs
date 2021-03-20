@@ -32,7 +32,7 @@ pub struct Map {
 }
 
 const WIDTH: usize = 80;
-const HEIGHT: usize = 50;
+const HEIGHT: usize = 43;
 const SIZE: usize = WIDTH * HEIGHT;
 
 impl Map {
@@ -42,14 +42,14 @@ impl Map {
 
     pub fn new_map_rooms_and_corridors() -> Map {
         let mut map = Map {
-            tiles: vec![TileType::Wall; WIDTH * HEIGHT],
+            tiles: vec![TileType::Wall; SIZE],
             rooms: Vec::<Rect>::new(),
             width: WIDTH as i32,
             height: HEIGHT as i32,
-            revealed_tiles: vec![false; WIDTH * HEIGHT],
-            visible_tiles: vec![false; WIDTH * HEIGHT],
-            blocked: vec![false; WIDTH * HEIGHT],
-            tile_content: vec![Vec::new(); WIDTH * HEIGHT],
+            revealed_tiles: vec![false; SIZE],
+            visible_tiles: vec![false; SIZE],
+            blocked: vec![false; SIZE],
+            tile_content: vec![Vec::new(); SIZE],
         };
 
         const MAX_ROOMS: i32 = 30;
