@@ -4,8 +4,10 @@ use rltk::{Point, Rltk, VirtualKeyCode};
 use specs::prelude::*;
 
 use crate::{
-    components::{CombatStats, Player, Position, Viewshed, WantsToMelee},
+    components::{CombatStats, Item, Player, Position, Viewshed, WantsToMelee, WantsToPickUpItem},
+    gamelog::GameLog,
     map::Map,
+    RunState,
 };
 
 pub fn try_move_player(delta_x: i32, delta_y: i32, world: &mut World) {
@@ -49,9 +51,9 @@ pub fn try_move_player(delta_x: i32, delta_y: i32, world: &mut World) {
     }
 }
 
-pub fn player_input(world: &mut World, ctx: &mut Rltk) -> bool {
+pub fn player_input(world: &mut World, ctx: &mut Rltk) -> RunState {
     match ctx.key {
-        None => return true,
+        None => return RunState::AwaitingInput,
         Some(key) => match key {
             VirtualKeyCode::Left | VirtualKeyCode::Numpad4 | VirtualKeyCode::H => {
                 try_move_player(-1, 0, world)
@@ -69,9 +71,46 @@ pub fn player_input(world: &mut World, ctx: &mut Rltk) -> bool {
             VirtualKeyCode::Numpad7 | VirtualKeyCode::Y => try_move_player(-1, -1, world),
             VirtualKeyCode::Numpad3 | VirtualKeyCode::N => try_move_player(1, 1, world),
             VirtualKeyCode::Numpad1 | VirtualKeyCode::B => try_move_player(-1, 1, world),
-            _ => return true,
+            VirtualKeyCode::D => return RunState::ShowDropItem,
+            VirtualKeyCode::G => get_item(world),
+            VirtualKeyCode::I => return RunState::ShowInventory,
+            _ => return RunState::AwaitingInput,
         },
     }
 
-    false
+    RunState::PlayerTurn
+}
+
+fn get_item(world: &mut World) {
+    let player_pos = world.fetch::<Point>();
+    let player_entity = world.fetch::<Entity>();
+    let entities = world.entities();
+    let items = world.read_storage::<Item>();
+    let positions = world.read_storage::<Position>();
+    let mut gamelog = world.fetch_mut::<GameLog>();
+
+    let mut target_item: Option<Entity> = None;
+    for (item_entity, _item, position) in (&entities, &items, &positions).join() {
+        if position.x == player_pos.x && position.y == player_pos.y {
+            target_item = Some(item_entity);
+        }
+    }
+
+    match target_item {
+        None => gamelog
+            .entries
+            .push("There is nothing here to pick up.".to_string()),
+        Some(item) => {
+            let mut pickup = world.write_storage::<WantsToPickUpItem>();
+            pickup
+                .insert(
+                    *player_entity,
+                    WantsToPickUpItem {
+                        collected_by: *player_entity,
+                        item,
+                    },
+                )
+                .expect("Unable to  insert want to pickup");
+        }
+    }
 }

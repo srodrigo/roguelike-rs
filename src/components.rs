@@ -13,6 +13,7 @@ pub struct Renderable {
     pub glyph: FontCharType,
     pub fg: RGB,
     pub bg: RGB,
+    pub render_order: i32,
 }
 
 #[derive(Component, Debug)]
@@ -52,6 +53,35 @@ pub struct WantsToMelee {
 #[derive(Component, Debug)]
 pub struct SufferDamage {
     pub amount: Vec<i32>,
+}
+
+#[derive(Component, Debug)]
+pub struct Item {}
+
+#[derive(Component, Debug)]
+pub struct Potion {
+    pub heal_amount: i32,
+}
+
+#[derive(Component, Debug)]
+pub struct InBackpack {
+    pub owner: Entity,
+}
+
+#[derive(Component, Debug)]
+pub struct WantsToPickUpItem {
+    pub item: Entity,
+    pub collected_by: Entity,
+}
+
+#[derive(Component, Debug)]
+pub struct WantsToDropItem {
+    pub item: Entity,
+}
+
+#[derive(Component, Debug)]
+pub struct WantsToDrinkPotion {
+    pub potion: Entity,
 }
 
 impl SufferDamage {

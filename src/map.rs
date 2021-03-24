@@ -31,9 +31,9 @@ pub struct Map {
     pub tile_content: Vec<Vec<Entity>>,
 }
 
-const WIDTH: usize = 80;
-const HEIGHT: usize = 43;
-const SIZE: usize = WIDTH * HEIGHT;
+pub const MAP_WIDTH: usize = 80;
+pub const MAP_HEIGHT: usize = 43;
+pub const MAP_SIZE: usize = MAP_WIDTH * MAP_HEIGHT;
 
 impl Map {
     pub fn xy_idx(&self, x: i32, y: i32) -> usize {
@@ -42,14 +42,14 @@ impl Map {
 
     pub fn new_map_rooms_and_corridors() -> Map {
         let mut map = Map {
-            tiles: vec![TileType::Wall; SIZE],
+            tiles: vec![TileType::Wall; MAP_SIZE],
             rooms: Vec::<Rect>::new(),
-            width: WIDTH as i32,
-            height: HEIGHT as i32,
-            revealed_tiles: vec![false; SIZE],
-            visible_tiles: vec![false; SIZE],
-            blocked: vec![false; SIZE],
-            tile_content: vec![Vec::new(); SIZE],
+            width: MAP_WIDTH as i32,
+            height: MAP_HEIGHT as i32,
+            revealed_tiles: vec![false; MAP_SIZE],
+            visible_tiles: vec![false; MAP_SIZE],
+            blocked: vec![false; MAP_SIZE],
+            tile_content: vec![Vec::new(); MAP_SIZE],
         };
 
         const MAX_ROOMS: i32 = 30;
