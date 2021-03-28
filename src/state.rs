@@ -3,10 +3,10 @@ use specs::prelude::*;
 use specs::World;
 
 use crate::{
-    components::{Position, Renderable, WantsToDrinkPotion, WantsToDropItem},
+    components::{Position, Ranged, Renderable, WantsToDropItem, WantsToUseItem},
     damage_system::{self, DamageSystem},
     gui,
-    inventory_system::{ItemColecctionSystem, ItemDropSystem, PotionUseSystem},
+    inventory_system::{ItemColecctionSystem, ItemDropSystem, ItemUseSystem},
     map::{draw_map, Map},
     map_indexing_system::MapIndexingSystem,
     melee_combat_system::MeleeCombatSystem,
@@ -23,6 +23,7 @@ pub enum RunState {
     MonsterTurn,
     ShowInventory,
     ShowDropItem,
+    ShowTargeting { range: i32, item: Entity },
 }
 
 pub struct State {
@@ -52,8 +53,8 @@ impl State {
         let mut item_drop = ItemDropSystem {};
         item_drop.run_now(&self.world);
 
-        let mut potion_use = PotionUseSystem {};
-        potion_use.run_now(&self.world);
+        let mut item_use = ItemUseSystem {};
+        item_use.run_now(&self.world);
 
         self.world.maintain();
     }
@@ -88,22 +89,32 @@ impl GameState for State {
                 new_run_state = RunState::AwaitingInput;
             }
             RunState::ShowInventory => {
-                let result = gui::show_inventory(self, ctx);
-                match result.0 {
+                let (item_menu_result, entity) = gui::show_inventory(self, ctx);
+                match item_menu_result {
                     gui::ItemMenuResult::Cancel => new_run_state = RunState::AwaitingInput,
                     gui::ItemMenuResult::NoResponse => {}
                     gui::ItemMenuResult::Selected => {
-                        let item_entity = result.1.unwrap();
-                        let mut intent = self.world.write_storage::<WantsToDrinkPotion>();
-                        intent
-                            .insert(
-                                *self.world.fetch::<Entity>(),
-                                WantsToDrinkPotion {
-                                    potion: item_entity,
-                                },
-                            )
-                            .expect("Unable to insert intent");
-                        new_run_state = RunState::AwaitingInput;
+                        let item_entity = entity.unwrap();
+                        let is_ranged = self.world.read_storage::<Ranged>();
+                        let is_item_ranged = is_ranged.get(item_entity);
+                        if let Some(is_item_ranged) = is_item_ranged {
+                            new_run_state = RunState::ShowTargeting {
+                                range: is_item_ranged.range,
+                                item: item_entity,
+                            }
+                        } else {
+                            let mut intent = self.world.write_storage::<WantsToUseItem>();
+                            intent
+                                .insert(
+                                    *self.world.fetch::<Entity>(),
+                                    WantsToUseItem {
+                                        item: item_entity,
+                                        target: None,
+                                    },
+                                )
+                                .expect("Unable to insert intent");
+                            new_run_state = RunState::PlayerTurn;
+                        }
                     }
                 }
             }
@@ -122,6 +133,25 @@ impl GameState for State {
                             )
                             .expect("Unable to insert intent");
                         new_run_state = RunState::PlayerTurn;
+                    }
+                }
+            }
+            RunState::ShowTargeting { range, item } => {
+                let (result, point) = gui::ranged_target(self, ctx, range);
+                match result {
+                    gui::ItemMenuResult::Cancel => new_run_state = RunState::AwaitingInput,
+                    gui::ItemMenuResult::NoResponse => {}
+                    gui::ItemMenuResult::Selected => {
+                        let mut intent = self.world.write_storage::<WantsToUseItem>();
+                        intent
+                            .insert(
+                                *self.world.fetch::<Entity>(),
+                                WantsToUseItem {
+                                    item,
+                                    target: point,
+                                },
+                            )
+                            .expect("Unable to insert intent");
                     }
                 }
             }

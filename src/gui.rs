@@ -4,7 +4,7 @@ use rltk::{Point, Rltk, RGB};
 use specs::prelude::*;
 
 use crate::{
-    components::{CombatStats, InBackpack, Name, Player, Position},
+    components::{CombatStats, InBackpack, Name, Player, Position, Viewshed},
     gamelog::GameLog,
     map::Map,
     State,
@@ -332,4 +332,57 @@ fn draw_tooltips(world: &World, ctx: &mut Rltk) {
             );
         }
     }
+}
+
+pub fn ranged_target(
+    game_state: &mut State,
+    ctx: &mut Rltk,
+    range: i32,
+) -> (ItemMenuResult, Option<Point>) {
+    let player_entity = game_state.world.fetch::<Entity>();
+    let player_pos = game_state.world.fetch::<Point>();
+    let viewsheds = game_state.world.read_storage::<Viewshed>();
+
+    ctx.print_color(
+        5,
+        0,
+        RGB::named(rltk::YELLOW),
+        RGB::named(rltk::BLACK),
+        "Select target:",
+    );
+
+    let mut available_cels = Vec::new();
+    let visible = viewsheds.get(*player_entity);
+    if let Some(visible) = visible {
+        for position in visible.visible_tiles.iter() {
+            let distance = rltk::DistanceAlg::Pythagoras.distance2d(*player_pos, *position);
+            if distance <= range as f32 {
+                ctx.set_bg(position.x, position.y, RGB::named(rltk::BLUE));
+                available_cels.push(position);
+            }
+        }
+    } else {
+        return (ItemMenuResult::Cancel, None);
+    }
+
+    let (mouse_x, mouse_y) = ctx.mouse_pos();
+    let mut valid_target = false;
+    for cell_pos in available_cels.iter() {
+        if cell_pos.x == mouse_x && cell_pos.y == mouse_y {
+            valid_target = true;
+        }
+    }
+    if valid_target {
+        ctx.set_bg(mouse_x, mouse_y, RGB::named(rltk::CYAN));
+        if ctx.left_click {
+            return (ItemMenuResult::Selected, Some(Point::new(mouse_x, mouse_y)));
+        }
+    } else {
+        ctx.set_bg(mouse_x, mouse_y, RGB::named(rltk::RED));
+        if ctx.left_click {
+            return (ItemMenuResult::Cancel, None);
+        }
+    }
+
+    (ItemMenuResult::NoResponse, None)
 }

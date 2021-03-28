@@ -51,7 +51,7 @@ pub struct WantsToMelee {
 }
 
 #[derive(Component, Debug)]
-pub struct SufferDamage {
+pub struct SuffersDamage {
     pub amount: Vec<i32>,
 }
 
@@ -59,7 +59,7 @@ pub struct SufferDamage {
 pub struct Item {}
 
 #[derive(Component, Debug)]
-pub struct Potion {
+pub struct ProvidesHealing {
     pub heal_amount: i32,
 }
 
@@ -80,16 +80,40 @@ pub struct WantsToDropItem {
 }
 
 #[derive(Component, Debug)]
-pub struct WantsToDrinkPotion {
-    pub potion: Entity,
+pub struct WantsToUseItem {
+    pub item: Entity,
+    pub target: Option<rltk::Point>,
 }
 
-impl SufferDamage {
-    pub fn new_damage(store: &mut WriteStorage<SufferDamage>, victim: Entity, amount: i32) {
+#[derive(Component, Debug)]
+pub struct Consumable {}
+
+#[derive(Component, Debug)]
+pub struct Ranged {
+    pub range: i32,
+}
+
+#[derive(Component, Debug)]
+pub struct InflictsDamage {
+    pub damage: i32,
+}
+
+#[derive(Component, Debug)]
+pub struct AreaOfEffect {
+    pub radius: i32,
+}
+
+#[derive(Component, Debug)]
+pub struct Confusion {
+    pub turns: i32,
+}
+
+impl SuffersDamage {
+    pub fn new_damage(store: &mut WriteStorage<SuffersDamage>, victim: Entity, amount: i32) {
         if let Some(suffering) = store.get_mut(victim) {
             suffering.amount.push(amount);
         } else {
-            let dmg = SufferDamage {
+            let dmg = SuffersDamage {
                 amount: vec![amount],
             };
             store.insert(victim, dmg).expect("Unable to insert damage");

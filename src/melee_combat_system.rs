@@ -1,5 +1,5 @@
 use crate::{
-    components::{CombatStats, Name, SufferDamage, WantsToMelee},
+    components::{CombatStats, Name, SuffersDamage, WantsToMelee},
     gamelog::GameLog,
 };
 use specs::prelude::*;
@@ -13,7 +13,7 @@ impl<'a> System<'a> for MeleeCombatSystem {
         WriteStorage<'a, WantsToMelee>,
         ReadStorage<'a, Name>,
         ReadStorage<'a, CombatStats>,
-        WriteStorage<'a, SufferDamage>,
+        WriteStorage<'a, SuffersDamage>,
     );
 
     fn run(&mut self, data: Self::SystemData) {
@@ -37,7 +37,7 @@ impl<'a> System<'a> for MeleeCombatSystem {
                             "{} hits {}, for {} hp",
                             &name.name, &target_name.name, damage
                         ));
-                        SufferDamage::new_damage(&mut inflict_damage, wants_melee.target, damage);
+                        SuffersDamage::new_damage(&mut inflict_damage, wants_melee.target, damage);
                     }
                 }
             }

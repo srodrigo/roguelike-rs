@@ -48,13 +48,18 @@ fn main() -> rltk::BError {
     game_state.world.register::<BlocksTile>();
     game_state.world.register::<CombatStats>();
     game_state.world.register::<WantsToMelee>();
-    game_state.world.register::<SufferDamage>();
+    game_state.world.register::<SuffersDamage>();
     game_state.world.register::<Item>();
-    game_state.world.register::<Potion>();
+    game_state.world.register::<ProvidesHealing>();
     game_state.world.register::<InBackpack>();
     game_state.world.register::<WantsToPickUpItem>();
     game_state.world.register::<WantsToDropItem>();
-    game_state.world.register::<WantsToDrinkPotion>();
+    game_state.world.register::<WantsToUseItem>();
+    game_state.world.register::<Consumable>();
+    game_state.world.register::<Ranged>();
+    game_state.world.register::<InflictsDamage>();
+    game_state.world.register::<AreaOfEffect>();
+    game_state.world.register::<Confusion>();
 
     game_state.world.insert(RunState::PreRun);
 

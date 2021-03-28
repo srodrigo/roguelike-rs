@@ -1,5 +1,5 @@
 use crate::{
-    components::{CombatStats, Name, Player, SufferDamage},
+    components::{CombatStats, Name, Player, SuffersDamage},
     gamelog::GameLog,
 };
 use specs::prelude::*;
@@ -9,7 +9,7 @@ pub struct DamageSystem {}
 impl<'a> System<'a> for DamageSystem {
     type SystemData = (
         WriteStorage<'a, CombatStats>,
-        WriteStorage<'a, SufferDamage>,
+        WriteStorage<'a, SuffersDamage>,
     );
 
     fn run(&mut self, data: Self::SystemData) {
