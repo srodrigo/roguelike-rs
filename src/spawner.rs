@@ -1,12 +1,16 @@
 use std::usize;
 
 use rltk::{to_cp437, FontCharType, RandomNumberGenerator, RGB};
-use specs::prelude::*;
+use specs::{
+    prelude::*,
+    saveload::{MarkedBuilder, SimpleMarker},
+};
 
 use crate::{
     components::{
         AreaOfEffect, BlocksTile, CombatStats, Confusion, Consumable, InflictsDamage, Item,
-        Monster, Name, Player, Position, ProvidesHealing, Ranged, Renderable, Viewshed,
+        Monster, Name, Player, Position, ProvidesHealing, Ranged, Renderable, SerializeMe,
+        Viewshed,
     },
     map::MAP_WIDTH,
     rect::Rect,
@@ -43,6 +47,7 @@ pub fn player(world: &mut World, player_x: i32, player_y: i32) -> Entity {
             bg: RGB::named(rltk::BLACK),
             render_order: 0,
         })
+        .marked::<SimpleMarker<SerializeMe>>()
         .build()
 }
 
@@ -92,6 +97,7 @@ fn monster<S: ToString>(world: &mut World, x: i32, y: i32, glyph: FontCharType, 
             bg: RGB::named(rltk::BLACK),
             render_order: 1,
         })
+        .marked::<SimpleMarker<SerializeMe>>()
         .build();
 }
 
@@ -182,6 +188,7 @@ fn health_potion(world: &mut World, x: i32, y: i32) {
             bg: RGB::named(rltk::BLACK),
             render_order: 2,
         })
+        .marked::<SimpleMarker<SerializeMe>>()
         .build();
 }
 
@@ -203,6 +210,7 @@ fn fireball_scroll(world: &mut World, x: i32, y: i32) {
             bg: RGB::named(rltk::BLACK),
             render_order: 2,
         })
+        .marked::<SimpleMarker<SerializeMe>>()
         .build();
 }
 
@@ -223,6 +231,7 @@ fn confusion_scroll(world: &mut World, x: i32, y: i32) -> () {
             bg: RGB::named(rltk::BLACK),
             render_order: 2,
         })
+        .marked::<SimpleMarker<SerializeMe>>()
         .build();
 }
 
@@ -243,5 +252,6 @@ fn magic_missile_scroll(world: &mut World, x: i32, y: i32) {
             bg: RGB::named(rltk::BLACK),
             render_order: 2,
         })
+        .marked::<SimpleMarker<SerializeMe>>()
         .build();
 }

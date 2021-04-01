@@ -12,6 +12,7 @@ use crate::{
     melee_combat_system::MeleeCombatSystem,
     monster_ai_system::MonsterAI,
     player::player_input,
+    saveload_system,
     visibility_system::VisibilitySystem,
 };
 
@@ -23,7 +24,14 @@ pub enum RunState {
     MonsterTurn,
     ShowInventory,
     ShowDropItem,
-    ShowTargeting { range: i32, item: Entity },
+    ShowTargeting {
+        range: i32,
+        item: Entity,
+    },
+    MainMenu {
+        menu_selection: gui::MainMenuSelection,
+    },
+    SaveGame,
 }
 
 pub struct State {
@@ -64,9 +72,31 @@ impl GameState for State {
     fn tick(&mut self, ctx: &mut Rltk) {
         ctx.cls();
 
-        draw_map(&self.world, ctx);
-
         let mut new_run_state = *self.world.fetch::<RunState>();
+
+        match new_run_state {
+            RunState::MainMenu { .. } => {}
+            _ => {
+                draw_map(&self.world, ctx);
+
+                {
+                    let positions = self.world.read_storage::<Position>();
+                    let renderables = self.world.read_storage::<Renderable>();
+                    let map = self.world.fetch::<Map>();
+
+                    let mut data = (&positions, &renderables).join().collect::<Vec<_>>();
+                    data.sort_by(|&a, &b| b.1.render_order.cmp(&a.1.render_order));
+                    for (pos, render) in data.iter() {
+                        let idx = map.xy_idx(pos.x, pos.y);
+                        if map.visible_tiles[idx] {
+                            ctx.set(pos.x, pos.y, render.fg, render.bg, render.glyph);
+                        }
+                    }
+
+                    gui::draw_ui(&self.world, ctx);
+                }
+            }
+        }
 
         match new_run_state {
             RunState::PreRun => {
@@ -155,6 +185,34 @@ impl GameState for State {
                     }
                 }
             }
+            RunState::MainMenu { .. } => {
+                let result = gui::main_menu(self, ctx);
+                match result {
+                    gui::MainMenuResult::NoSelection { selected } => {
+                        new_run_state = RunState::MainMenu {
+                            menu_selection: selected,
+                        }
+                    }
+                    gui::MainMenuResult::Selected { selected } => match selected {
+                        gui::MainMenuSelection::NewGame => new_run_state = RunState::PreRun,
+                        gui::MainMenuSelection::LoadGame => {
+                            saveload_system::load_game(&mut self.world);
+                            new_run_state = RunState::AwaitingInput;
+                            saveload_system::delete_saved_game();
+                        }
+                        gui::MainMenuSelection::Quit => {
+                            ::std::process::exit(0);
+                        }
+                    },
+                }
+            }
+            RunState::SaveGame => {
+                saveload_system::save_game(&mut self.world);
+
+                new_run_state = RunState::MainMenu {
+                    menu_selection: gui::MainMenuSelection::Quit,
+                }
+            }
         };
 
         {
@@ -163,22 +221,5 @@ impl GameState for State {
         }
 
         damage_system::delete_the_dead(&mut self.world);
-
-        {
-            let positions = self.world.read_storage::<Position>();
-            let renderables = self.world.read_storage::<Renderable>();
-            let map = self.world.fetch::<Map>();
-
-            let mut data = (&positions, &renderables).join().collect::<Vec<_>>();
-            data.sort_by(|&a, &b| b.1.render_order.cmp(&a.1.render_order));
-            for (pos, render) in data.iter() {
-                let idx = map.xy_idx(pos.x, pos.y);
-                if map.visible_tiles[idx] {
-                    ctx.set(pos.x, pos.y, render.fg, render.bg, render.glyph);
-                }
-            }
-        }
-
-        gui::draw_ui(&self.world, ctx);
     }
 }

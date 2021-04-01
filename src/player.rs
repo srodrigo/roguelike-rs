@@ -74,6 +74,7 @@ pub fn player_input(world: &mut World, ctx: &mut Rltk) -> RunState {
             VirtualKeyCode::D => return RunState::ShowDropItem,
             VirtualKeyCode::G => get_item(world),
             VirtualKeyCode::I => return RunState::ShowInventory,
+            VirtualKeyCode::Escape => return RunState::SaveGame,
             _ => return RunState::AwaitingInput,
         },
     }

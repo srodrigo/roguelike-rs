@@ -4,11 +4,12 @@ use std::{
 };
 
 use rltk::{Algorithm2D, BaseMap, Point, RandomNumberGenerator, Rltk, RGB};
+use serde::{Deserialize, Serialize};
 use specs::{Entity, World};
 
 use crate::rect::Rect;
 
-#[derive(PartialEq, Copy, Clone)]
+#[derive(PartialEq, Copy, Clone, Serialize, Deserialize)]
 pub enum TileType {
     Wall,
     Floor,
@@ -19,7 +20,7 @@ pub type Rooms = Vec<Rect>;
 pub type TilesVisibility = Vec<bool>;
 pub type TilesBlocking = Vec<bool>;
 
-#[derive(Default)]
+#[derive(Default, Serialize, Deserialize, Clone)]
 pub struct Map {
     pub tiles: MapTiles,
     pub rooms: Rooms,
@@ -28,6 +29,8 @@ pub struct Map {
     pub revealed_tiles: TilesVisibility,
     pub visible_tiles: TilesVisibility,
     pub blocked: TilesBlocking,
+    #[serde(skip_serializing)]
+    #[serde(skip_deserializing)]
     pub tile_content: Vec<Vec<Entity>>,
 }
 

@@ -1,12 +1,14 @@
 use std::usize;
 
-use rltk::{Point, Rltk, RGB};
+use rltk::{Point, Rltk, VirtualKeyCode, RGB};
 use specs::prelude::*;
 
 use crate::{
     components::{CombatStats, InBackpack, Name, Player, Position, Viewshed},
     gamelog::GameLog,
     map::Map,
+    saveload_system::is_game_saved,
+    state::RunState,
     State,
 };
 
@@ -15,6 +17,19 @@ pub enum ItemMenuResult {
     Cancel,
     NoResponse,
     Selected,
+}
+
+#[derive(PartialEq, Copy, Clone)]
+pub enum MainMenuSelection {
+    NewGame,
+    LoadGame,
+    Quit,
+}
+
+#[derive(PartialEq, Copy, Clone)]
+pub enum MainMenuResult {
+    NoSelection { selected: MainMenuSelection },
+    Selected { selected: MainMenuSelection },
 }
 
 pub fn show_inventory(game_state: &mut State, ctx: &mut Rltk) -> (ItemMenuResult, Option<Entity>) {
@@ -91,7 +106,7 @@ pub fn show_inventory(game_state: &mut State, ctx: &mut Rltk) -> (ItemMenuResult
     match ctx.key {
         None => (ItemMenuResult::NoResponse, None),
         Some(key) => match key {
-            rltk::VirtualKeyCode::Escape => (ItemMenuResult::Cancel, None),
+            VirtualKeyCode::Escape => (ItemMenuResult::Cancel, None),
             _ => {
                 let selection = rltk::letter_to_option(key);
                 if selection > -1 && selection < count as i32 {
@@ -180,7 +195,7 @@ pub fn show_drop_item(game_state: &mut State, ctx: &mut Rltk) -> (ItemMenuResult
     match ctx.key {
         None => (ItemMenuResult::NoResponse, None),
         Some(key) => match key {
-            rltk::VirtualKeyCode::Escape => (ItemMenuResult::Cancel, None),
+            VirtualKeyCode::Escape => (ItemMenuResult::Cancel, None),
             _ => {
                 let selection = rltk::letter_to_option(key);
                 if selection > -1 && selection < count as i32 {
@@ -385,4 +400,121 @@ pub fn ranged_target(
     }
 
     (ItemMenuResult::NoResponse, None)
+}
+
+pub fn main_menu(game_state: &mut State, ctx: &mut Rltk) -> MainMenuResult {
+    let game_saved = is_game_saved();
+    let run_state = game_state.world.fetch::<RunState>();
+
+    ctx.print_color_centered(
+        15,
+        RGB::named(rltk::YELLOW),
+        RGB::named(rltk::BLACK),
+        "Rust Roguelike Tutorial",
+    );
+
+    if let RunState::MainMenu {
+        menu_selection: selection,
+    } = *run_state
+    {
+        if selection == MainMenuSelection::NewGame {
+            ctx.print_color_centered(
+                24,
+                RGB::named(rltk::MAGENTA),
+                RGB::named(rltk::BLACK),
+                "Begin New Game",
+            );
+        } else {
+            ctx.print_color_centered(
+                24,
+                RGB::named(rltk::WHITE),
+                RGB::named(rltk::BLACK),
+                "Begin New Game",
+            );
+        }
+
+        if game_saved {
+            if selection == MainMenuSelection::LoadGame {
+                ctx.print_color_centered(
+                    25,
+                    RGB::named(rltk::MAGENTA),
+                    RGB::named(rltk::BLACK),
+                    "Load Game",
+                );
+            } else {
+                ctx.print_color_centered(
+                    25,
+                    RGB::named(rltk::WHITE),
+                    RGB::named(rltk::BLACK),
+                    "Load Game",
+                );
+            }
+        }
+
+        if selection == MainMenuSelection::Quit {
+            ctx.print_color_centered(
+                26,
+                RGB::named(rltk::MAGENTA),
+                RGB::named(rltk::BLACK),
+                "Quit",
+            );
+        } else {
+            ctx.print_color_centered(26, RGB::named(rltk::WHITE), RGB::named(rltk::BLACK), "Quit");
+        }
+
+        match ctx.key {
+            None => {
+                return MainMenuResult::NoSelection {
+                    selected: selection,
+                }
+            }
+            Some(key) => match key {
+                VirtualKeyCode::Escape => {
+                    return MainMenuResult::NoSelection {
+                        selected: MainMenuSelection::Quit,
+                    }
+                }
+                VirtualKeyCode::Up => {
+                    let mut new_selection = match selection {
+                        MainMenuSelection::NewGame => MainMenuSelection::Quit,
+                        MainMenuSelection::LoadGame => MainMenuSelection::NewGame,
+                        MainMenuSelection::Quit => MainMenuSelection::LoadGame,
+                    };
+                    if new_selection == MainMenuSelection::LoadGame && !game_saved {
+                        new_selection = MainMenuSelection::NewGame;
+                    }
+                    return MainMenuResult::NoSelection {
+                        selected: new_selection,
+                    };
+                }
+                VirtualKeyCode::Down => {
+                    let mut new_selection = match selection {
+                        MainMenuSelection::NewGame => MainMenuSelection::LoadGame,
+                        MainMenuSelection::LoadGame => MainMenuSelection::Quit,
+                        MainMenuSelection::Quit => MainMenuSelection::NewGame,
+                    };
+                    if new_selection == MainMenuSelection::LoadGame && !game_saved {
+                        new_selection = MainMenuSelection::Quit;
+                    }
+                    return MainMenuResult::NoSelection {
+                        selected: new_selection,
+                    };
+                }
+                VirtualKeyCode::Return => {
+                    return MainMenuResult::Selected {
+                        selected: selection,
+                    }
+                }
+                _ => {
+                    return MainMenuResult::NoSelection {
+                        selected: selection,
+                    }
+                }
+            },
+        }
+    }
+
+    MainMenuResult::NoSelection {
+        selected: MainMenuSelection::NewGame,
+    }
 }

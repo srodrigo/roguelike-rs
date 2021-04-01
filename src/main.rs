@@ -1,6 +1,7 @@
 use rltk::Point;
 use rltk::RandomNumberGenerator;
 use specs::prelude::*;
+use specs::saveload::{SimpleMarker, SimpleMarkerAllocator};
 
 mod components;
 use components::*;
@@ -27,6 +28,7 @@ mod inventory_system;
 mod map_indexing_system;
 mod melee_combat_system;
 mod monster_ai_system;
+mod saveload_system;
 mod visibility_system;
 
 fn main() -> rltk::BError {
@@ -60,8 +62,15 @@ fn main() -> rltk::BError {
     game_state.world.register::<InflictsDamage>();
     game_state.world.register::<AreaOfEffect>();
     game_state.world.register::<Confusion>();
+    game_state.world.register::<SimpleMarker<SerializeMe>>();
+    game_state.world.register::<SerializationHelper>();
 
-    game_state.world.insert(RunState::PreRun);
+    game_state.world.insert(RunState::MainMenu {
+        menu_selection: gui::MainMenuSelection::NewGame,
+    });
+    game_state
+        .world
+        .insert(SimpleMarkerAllocator::<SerializeMe>::new());
 
     let map = Map::new_map_rooms_and_corridors();
 
