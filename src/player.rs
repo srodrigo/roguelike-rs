@@ -4,11 +4,50 @@ use rltk::{Point, Rltk, VirtualKeyCode};
 use specs::prelude::*;
 
 use crate::{
-    components::{CombatStats, Item, Player, Position, Viewshed, WantsToMelee, WantsToPickUpItem},
+    components::{
+        CombatStats, Item, Monster, Player, Position, Viewshed, WantsToMelee, WantsToPickUpItem,
+    },
     gamelog::GameLog,
-    map::Map,
+    map::{Map, TileType},
     RunState,
 };
+
+pub fn player_input(world: &mut World, ctx: &mut Rltk) -> RunState {
+    match ctx.key {
+        None => return RunState::AwaitingInput,
+        Some(key) => match key {
+            VirtualKeyCode::Left | VirtualKeyCode::Numpad4 | VirtualKeyCode::H => {
+                try_move_player(-1, 0, world)
+            }
+            VirtualKeyCode::Right | VirtualKeyCode::Numpad6 | VirtualKeyCode::L => {
+                try_move_player(1, 0, world)
+            }
+            VirtualKeyCode::Up | VirtualKeyCode::Numpad8 | VirtualKeyCode::K => {
+                try_move_player(0, -1, world)
+            }
+            VirtualKeyCode::Down | VirtualKeyCode::Numpad2 | VirtualKeyCode::J => {
+                try_move_player(0, 1, world)
+            }
+            VirtualKeyCode::Numpad9 | VirtualKeyCode::U => try_move_player(1, -1, world),
+            VirtualKeyCode::Numpad7 | VirtualKeyCode::Y => try_move_player(-1, -1, world),
+            VirtualKeyCode::Numpad3 | VirtualKeyCode::N => try_move_player(1, 1, world),
+            VirtualKeyCode::Numpad1 | VirtualKeyCode::B => try_move_player(-1, 1, world),
+            VirtualKeyCode::Numpad5 | VirtualKeyCode::Space => return skip_turn(world),
+            VirtualKeyCode::D => return RunState::ShowDropItem,
+            VirtualKeyCode::G => get_item(world),
+            VirtualKeyCode::I => return RunState::ShowInventory,
+            VirtualKeyCode::Period => {
+                if try_next_level(world) {
+                    return RunState::NextLevel;
+                }
+            }
+            VirtualKeyCode::Escape => return RunState::SaveGame,
+            _ => return RunState::AwaitingInput,
+        },
+    }
+
+    RunState::PlayerTurn
+}
 
 pub fn try_move_player(delta_x: i32, delta_y: i32, world: &mut World) {
     let mut positions = world.write_storage::<Position>();
@@ -51,35 +90,19 @@ pub fn try_move_player(delta_x: i32, delta_y: i32, world: &mut World) {
     }
 }
 
-pub fn player_input(world: &mut World, ctx: &mut Rltk) -> RunState {
-    match ctx.key {
-        None => return RunState::AwaitingInput,
-        Some(key) => match key {
-            VirtualKeyCode::Left | VirtualKeyCode::Numpad4 | VirtualKeyCode::H => {
-                try_move_player(-1, 0, world)
-            }
-            VirtualKeyCode::Right | VirtualKeyCode::Numpad6 | VirtualKeyCode::L => {
-                try_move_player(1, 0, world)
-            }
-            VirtualKeyCode::Up | VirtualKeyCode::Numpad8 | VirtualKeyCode::K => {
-                try_move_player(0, -1, world)
-            }
-            VirtualKeyCode::Down | VirtualKeyCode::Numpad2 | VirtualKeyCode::J => {
-                try_move_player(0, 1, world)
-            }
-            VirtualKeyCode::Numpad9 | VirtualKeyCode::U => try_move_player(1, -1, world),
-            VirtualKeyCode::Numpad7 | VirtualKeyCode::Y => try_move_player(-1, -1, world),
-            VirtualKeyCode::Numpad3 | VirtualKeyCode::N => try_move_player(1, 1, world),
-            VirtualKeyCode::Numpad1 | VirtualKeyCode::B => try_move_player(-1, 1, world),
-            VirtualKeyCode::D => return RunState::ShowDropItem,
-            VirtualKeyCode::G => get_item(world),
-            VirtualKeyCode::I => return RunState::ShowInventory,
-            VirtualKeyCode::Escape => return RunState::SaveGame,
-            _ => return RunState::AwaitingInput,
-        },
+pub fn try_next_level(world: &mut World) -> bool {
+    let player_pos = world.fetch::<Point>();
+    let map = world.fetch::<Map>();
+    let player_idx = map.xy_idx(player_pos.x, player_pos.y);
+    if map.tiles[player_idx] == TileType::DownStairs {
+        true
+    } else {
+        let mut gamelog = world.fetch_mut::<GameLog>();
+        gamelog
+            .entries
+            .push("There is no way down from here.".to_string());
+        false
     }
-
-    RunState::PlayerTurn
 }
 
 fn get_item(world: &mut World) {
@@ -114,4 +137,37 @@ fn get_item(world: &mut World) {
                 .expect("Unable to  insert want to pickup");
         }
     }
+}
+
+fn skip_turn(world: &mut World) -> RunState {
+    let player_entity = world.fetch::<Entity>();
+
+    if can_heal(&world, &player_entity) {
+        let mut health_components = world.write_storage::<CombatStats>();
+        let player_hp = health_components.get_mut(*player_entity).unwrap();
+        player_hp.hp = i32::min(player_hp.hp + 1, player_hp.max_hp);
+    }
+
+    RunState::PlayerTurn
+}
+
+fn can_heal(world: &&mut World, player_entity: &specs::shred::Fetch<Entity>) -> bool {
+    let map_resource = world.fetch::<Map>();
+    let viewshed_components = world.read_storage::<Viewshed>();
+    let viewshed = viewshed_components.get(**player_entity).unwrap();
+    let monsters = world.read_storage::<Monster>();
+
+    for tile in viewshed.visible_tiles.iter() {
+        let idx = map_resource.xy_idx(tile.x, tile.y);
+        for entity_id in map_resource.tile_content[idx].iter() {
+            match monsters.get(*entity_id) {
+                None => {}
+                Some(_) => {
+                    return false;
+                }
+            }
+        }
+    }
+
+    true
 }

@@ -1,10 +1,14 @@
-use rltk::{GameState, Rltk};
+use rltk::{GameState, Point, Rltk};
 use specs::prelude::*;
 use specs::World;
 
 use crate::{
-    components::{Position, Ranged, Renderable, WantsToDropItem, WantsToUseItem},
+    components::{
+        CombatStats, InBackpack, Player, Position, Ranged, Renderable, Viewshed, WantsToDropItem,
+        WantsToUseItem,
+    },
     damage_system::{self, DamageSystem},
+    gamelog::GameLog,
     gui,
     inventory_system::{ItemColecctionSystem, ItemDropSystem, ItemUseSystem},
     map::{draw_map, Map},
@@ -12,7 +16,7 @@ use crate::{
     melee_combat_system::MeleeCombatSystem,
     monster_ai_system::MonsterAI,
     player::player_input,
-    saveload_system,
+    saveload_system, spawner,
     visibility_system::VisibilitySystem,
 };
 
@@ -28,6 +32,7 @@ pub enum RunState {
         range: i32,
         item: Entity,
     },
+    NextLevel,
     MainMenu {
         menu_selection: gui::MainMenuSelection,
     },
@@ -65,6 +70,81 @@ impl State {
         item_use.run_now(&self.world);
 
         self.world.maintain();
+    }
+
+    fn entities_to_remove_on_level_change(&mut self) -> Vec<Entity> {
+        let mut to_delete: Vec<Entity> = Vec::new();
+
+        let entities = self.world.entities();
+        let player = self.world.read_storage::<Player>();
+        let backpack = self.world.read_storage::<InBackpack>();
+        let player_entity = self.world.fetch::<Entity>();
+
+        for entity in entities.join() {
+            let mut should_delete = true;
+
+            if let Some(_) = player.get(entity) {
+                should_delete = false;
+            }
+
+            if let Some(bp) = backpack.get(entity) {
+                if bp.owner == *player_entity {
+                    should_delete = false;
+                }
+            }
+
+            if should_delete {
+                to_delete.push(entity);
+            }
+        }
+
+        to_delete
+    }
+
+    fn goto_next_level(&mut self) {
+        for target in self.entities_to_remove_on_level_change() {
+            self.world
+                .delete_entity(target)
+                .expect("Unable to delete entity");
+        }
+
+        let worldmap;
+        let current_depth;
+        {
+            let mut worldmap_resource = self.world.write_resource::<Map>();
+            current_depth = worldmap_resource.depth;
+            *worldmap_resource = Map::new_map_rooms_and_corridors(current_depth + 1);
+            worldmap = worldmap_resource.clone();
+        }
+
+        for room in worldmap.rooms.iter().skip(1) {
+            spawner::spawn_room(&mut self.world, room, current_depth + 1);
+        }
+
+        let (player_x, player_y) = worldmap.rooms[0].center();
+        let mut player_pos = self.world.write_resource::<Point>();
+        *player_pos = Point::new(player_pos.x, player_pos.y);
+
+        let mut position_components = self.world.write_storage::<Position>();
+        let player_entity = self.world.fetch::<Entity>();
+        if let Some(player_pos_comp) = position_components.get_mut(*player_entity) {
+            player_pos_comp.x = player_x;
+            player_pos_comp.y = player_y;
+        }
+
+        let mut viewshed_components = self.world.write_storage::<Viewshed>();
+        if let Some(viewshed) = viewshed_components.get_mut(*player_entity) {
+            viewshed.dirty = true;
+        }
+
+        let mut gamelog = self.world.fetch_mut::<GameLog>();
+        gamelog
+            .entries
+            .push("You descend to the next level, and take a moment to heal.".to_string());
+        let mut player_health_store = self.world.write_storage::<CombatStats>();
+        if let Some(player_health) = player_health_store.get_mut(*player_entity) {
+            player_health.hp = i32::max(player_health.hp, player_health.max_hp / 2);
+        }
     }
 }
 
@@ -184,6 +264,10 @@ impl GameState for State {
                             .expect("Unable to insert intent");
                     }
                 }
+            }
+            RunState::NextLevel => {
+                self.goto_next_level();
+                new_run_state = RunState::PreRun;
             }
             RunState::MainMenu { .. } => {
                 let result = gui::main_menu(self, ctx);

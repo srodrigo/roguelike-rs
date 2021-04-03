@@ -13,6 +13,7 @@ use crate::rect::Rect;
 pub enum TileType {
     Wall,
     Floor,
+    DownStairs,
 }
 
 pub type MapTiles = Vec<TileType>;
@@ -29,6 +30,7 @@ pub struct Map {
     pub revealed_tiles: TilesVisibility,
     pub visible_tiles: TilesVisibility,
     pub blocked: TilesBlocking,
+    pub depth: i32,
     #[serde(skip_serializing)]
     #[serde(skip_deserializing)]
     pub tile_content: Vec<Vec<Entity>>,
@@ -43,7 +45,7 @@ impl Map {
         (y as usize * self.width as usize) + x as usize
     }
 
-    pub fn new_map_rooms_and_corridors() -> Map {
+    pub fn new_map_rooms_and_corridors(new_depth: i32) -> Map {
         let mut map = Map {
             tiles: vec![TileType::Wall; MAP_SIZE],
             rooms: Vec::<Rect>::new(),
@@ -52,6 +54,7 @@ impl Map {
             revealed_tiles: vec![false; MAP_SIZE],
             visible_tiles: vec![false; MAP_SIZE],
             blocked: vec![false; MAP_SIZE],
+            depth: new_depth,
             tile_content: vec![Vec::new(); MAP_SIZE],
         };
 
@@ -87,6 +90,10 @@ impl Map {
                 map.rooms.push(new_room);
             }
         }
+
+        let (stairs_x, stairs_y) = map.rooms[map.rooms.len() - 1].center();
+        let stairs_idx = map.xy_idx(stairs_x, stairs_y);
+        map.tiles[stairs_idx] = TileType::DownStairs;
 
         map
     }
@@ -212,6 +219,10 @@ pub fn draw_map(world: &World, ctx: &mut Rltk) {
                     TileType::Wall => {
                         glyph = rltk::to_cp437('#');
                         fg = RGB::from_f32(0.0, 0.5, 0.0);
+                    }
+                    TileType::DownStairs => {
+                        glyph = rltk::to_cp437('>');
+                        fg = RGB::from_f32(0., 1.0, 1.0);
                     }
                 }
                 if !map.visible_tiles[idx] {

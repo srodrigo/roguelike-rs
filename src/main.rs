@@ -31,6 +31,8 @@ mod monster_ai_system;
 mod saveload_system;
 mod visibility_system;
 
+mod random_table;
+
 fn main() -> rltk::BError {
     use rltk::RltkBuilder;
 
@@ -72,12 +74,12 @@ fn main() -> rltk::BError {
         .world
         .insert(SimpleMarkerAllocator::<SerializeMe>::new());
 
-    let map = Map::new_map_rooms_and_corridors();
+    let map = Map::new_map_rooms_and_corridors(1);
 
     game_state.world.insert(RandomNumberGenerator::new());
 
     for room in map.rooms.iter().skip(1) {
-        spawner::spawn_room(&mut game_state.world, room);
+        spawner::spawn_room(&mut game_state.world, room, 1);
     }
 
     let (player_x, player_y) = map.rooms[0].center();
