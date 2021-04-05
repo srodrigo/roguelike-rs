@@ -7,18 +7,18 @@ use crate::{
         CombatStats, Equipped, InBackpack, Player, Position, Ranged, Renderable, Viewshed,
         WantsToDropItem, WantsToRemoveItem, WantsToUseItem,
     },
-    damage_system::{self, DamageSystem},
+    damage::{self, DamageSystem},
     gamelog::GameLog,
     gui,
-    inventory_system::{ItemColecctionSystem, ItemDropSystem, ItemRemoveSystem, ItemUseSystem},
+    inventory::{ItemColecctionSystem, ItemDropSystem, ItemRemoveSystem, ItemUseSystem},
     map::{draw_map, Map},
-    map_indexing_system::MapIndexingSystem,
-    melee_combat_system::MeleeCombatSystem,
-    monster_ai_system::MonsterAI,
+    map_indexing::MapIndexingSystem,
+    melee_combat::MeleeCombatSystem,
+    monster_ai::MonsterAI,
     particles::{self, ParticleSpawnSystem},
     player::player_input,
-    saveload_system, spawner,
-    visibility_system::VisibilitySystem,
+    saveload, spawner,
+    visibility::VisibilitySystem,
 };
 
 #[derive(PartialEq, Copy, Clone)]
@@ -338,9 +338,9 @@ impl GameState for State {
                     gui::MainMenuResult::Selected { selected } => match selected {
                         gui::MainMenuSelection::NewGame => new_run_state = RunState::PreRun,
                         gui::MainMenuSelection::LoadGame => {
-                            saveload_system::load_game(&mut self.world);
+                            saveload::load_game(&mut self.world);
                             new_run_state = RunState::AwaitingInput;
-                            saveload_system::delete_saved_game();
+                            saveload::delete_saved_game();
                         }
                         gui::MainMenuSelection::Quit => {
                             ::std::process::exit(0);
@@ -368,7 +368,7 @@ impl GameState for State {
                 }
             }
             RunState::SaveGame => {
-                saveload_system::save_game(&mut self.world);
+                saveload::save_game(&mut self.world);
 
                 new_run_state = RunState::MainMenu {
                     menu_selection: gui::MainMenuSelection::Quit,
@@ -390,6 +390,6 @@ impl GameState for State {
             *run_writer = new_run_state;
         }
 
-        damage_system::delete_the_dead(&mut self.world);
+        damage::delete_the_dead(&mut self.world);
     }
 }

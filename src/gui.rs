@@ -7,7 +7,7 @@ use crate::{
     components::{CombatStats, Equipped, InBackpack, Name, Player, Position, Viewshed},
     gamelog::GameLog,
     map::Map,
-    saveload_system::is_game_saved,
+    saveload::is_game_saved,
     state::RunState,
     State,
 };

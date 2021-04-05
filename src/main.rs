@@ -23,14 +23,14 @@ use gamelog::GameLog;
 
 mod spawner;
 
-mod damage_system;
-mod inventory_system;
-mod map_indexing_system;
-mod melee_combat_system;
-mod monster_ai_system;
+mod damage;
+mod inventory;
+mod map_indexing;
+mod melee_combat;
+mod monster_ai;
 mod particles;
-mod saveload_system;
-mod visibility_system;
+mod saveload;
+mod visibility;
 
 mod random_table;
 
