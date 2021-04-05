@@ -36,9 +36,10 @@ mod random_table;
 fn main() -> rltk::BError {
     use rltk::RltkBuilder;
 
-    let context = RltkBuilder::simple80x50()
+    let mut context = RltkBuilder::simple80x50()
         .with_title("Roguelike Tutorial")
         .build()?;
+    context.with_post_scanlines(true);
 
     let mut game_state = State {
         world: World::new(),
