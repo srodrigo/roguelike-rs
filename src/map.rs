@@ -1,5 +1,6 @@
 use std::{
     cmp::{max, min},
+    collections::HashSet,
     usize,
 };
 
@@ -31,6 +32,8 @@ pub struct Map {
     pub visible_tiles: TilesVisibility,
     pub blocked: TilesBlocking,
     pub depth: i32,
+    pub bloodstains: HashSet<usize>,
+
     #[serde(skip_serializing)]
     #[serde(skip_deserializing)]
     pub tile_content: Vec<Vec<Entity>>,
@@ -55,6 +58,7 @@ impl Map {
             visible_tiles: vec![false; MAP_SIZE],
             blocked: vec![false; MAP_SIZE],
             depth: new_depth,
+            bloodstains: HashSet::new(),
             tile_content: vec![Vec::new(); MAP_SIZE],
         };
 
@@ -225,10 +229,16 @@ pub fn draw_map(world: &World, ctx: &mut Rltk) {
                         fg = RGB::from_f32(0., 1.0, 1.0);
                     }
                 }
+
+                let mut bg = RGB::from_f32(0., 0., 0.);
+                if map.bloodstains.contains(&idx) {
+                    bg = RGB::from_f32(0.75, 0., 0.);
+                }
                 if !map.visible_tiles[idx] {
                     fg = fg.to_greyscale();
+                    bg = RGB::from_f32(0., 0., 0.);
                 }
-                ctx.set(x, y, fg, RGB::from_f32(0., 0., 0.), glyph);
+                ctx.set(x, y, fg, bg, glyph);
             }
         }
     }
