@@ -4,7 +4,7 @@ use rltk::{Point, Rltk, VirtualKeyCode, RGB};
 use specs::prelude::*;
 
 use crate::{
-    components::{CombatStats, InBackpack, Name, Player, Position, Viewshed},
+    components::{CombatStats, Equipped, InBackpack, Name, Player, Position, Viewshed},
     gamelog::GameLog,
     map::Map,
     saveload_system::is_game_saved,
@@ -30,6 +30,12 @@ pub enum MainMenuSelection {
 pub enum MainMenuResult {
     NoSelection { selected: MainMenuSelection },
     Selected { selected: MainMenuSelection },
+}
+
+#[derive(PartialEq, Copy, Clone)]
+pub enum GameOverResult {
+    NoSelection,
+    QuitToMenu,
 }
 
 pub fn show_inventory(game_state: &mut State, ctx: &mut Rltk) -> (ItemMenuResult, Option<Entity>) {
@@ -207,6 +213,130 @@ pub fn show_drop_item(game_state: &mut State, ctx: &mut Rltk) -> (ItemMenuResult
                 (ItemMenuResult::NoResponse, None)
             }
         },
+    }
+}
+
+pub fn remove_item_menu(
+    game_state: &mut State,
+    ctx: &mut Rltk,
+) -> (ItemMenuResult, Option<Entity>) {
+    let player_entity = game_state.world.fetch::<Entity>();
+    let names = game_state.world.read_storage::<Name>();
+    let backpack = game_state.world.read_storage::<Equipped>();
+    let entities = game_state.world.entities();
+
+    let inventory = (&backpack, &names)
+        .join()
+        .filter(|item| item.0.owner == *player_entity);
+    let count = inventory.count();
+
+    let mut y = (25 - (count / 2)) as i32;
+    ctx.draw_box(
+        15,
+        y - 2,
+        31,
+        (count + 3) as i32,
+        RGB::named(rltk::WHITE),
+        RGB::named(rltk::BLACK),
+    );
+    ctx.print_color(
+        18,
+        y - 2,
+        RGB::named(rltk::YELLOW),
+        RGB::named(rltk::BLACK),
+        "Remove Which Item?",
+    );
+    ctx.print_color(
+        18,
+        y + count as i32 + 1,
+        RGB::named(rltk::YELLOW),
+        RGB::named(rltk::BLACK),
+        "ESCAPE to cancel",
+    );
+
+    let mut equippable: Vec<Entity> = Vec::new();
+    let mut j = 0;
+    for (entity, _pack, name) in (&entities, &backpack, &names)
+        .join()
+        .filter(|item| item.1.owner == *player_entity)
+    {
+        ctx.set(
+            17,
+            y,
+            RGB::named(rltk::WHITE),
+            RGB::named(rltk::BLACK),
+            rltk::to_cp437('('),
+        );
+        ctx.set(
+            18,
+            y,
+            RGB::named(rltk::YELLOW),
+            RGB::named(rltk::BLACK),
+            97 + j as rltk::FontCharType,
+        );
+        ctx.set(
+            19,
+            y,
+            RGB::named(rltk::WHITE),
+            RGB::named(rltk::BLACK),
+            rltk::to_cp437(')'),
+        );
+
+        ctx.print(21, y, &name.name.to_string());
+
+        equippable.push(entity);
+        y += 1;
+        j += 1;
+    }
+
+    match ctx.key {
+        None => (ItemMenuResult::NoResponse, None),
+        Some(key) => match key {
+            VirtualKeyCode::Escape => (ItemMenuResult::Cancel, None),
+            _ => {
+                let selection = rltk::letter_to_option(key);
+                if selection > -1 && selection < count as i32 {
+                    return (
+                        ItemMenuResult::Selected,
+                        Some(equippable[selection as usize]),
+                    );
+                }
+                (ItemMenuResult::NoResponse, None)
+            }
+        },
+    }
+}
+
+pub fn game_over(ctx: &mut Rltk) -> GameOverResult {
+    ctx.print_color_centered(
+        15,
+        RGB::named(rltk::YELLOW),
+        RGB::named(rltk::BLACK),
+        "Your journey has ended!",
+    );
+    ctx.print_color_centered(
+        17,
+        RGB::named(rltk::WHITE),
+        RGB::named(rltk::BLACK),
+        "One day, we'll tell you all about how you did.",
+    );
+    ctx.print_color_centered(
+        18,
+        RGB::named(rltk::WHITE),
+        RGB::named(rltk::BLACK),
+        "That day, sadly, is not in this chapter..",
+    );
+
+    ctx.print_color_centered(
+        20,
+        RGB::named(rltk::MAGENTA),
+        RGB::named(rltk::BLACK),
+        "Press any key to return to the menu.",
+    );
+
+    match ctx.key {
+        None => GameOverResult::NoSelection,
+        Some(_) => GameOverResult::QuitToMenu,
     }
 }
 

@@ -4,13 +4,13 @@ use specs::World;
 
 use crate::{
     components::{
-        CombatStats, InBackpack, Player, Position, Ranged, Renderable, Viewshed, WantsToDropItem,
-        WantsToUseItem,
+        CombatStats, Equipped, InBackpack, Player, Position, Ranged, Renderable, Viewshed,
+        WantsToDropItem, WantsToRemoveItem, WantsToUseItem,
     },
     damage_system::{self, DamageSystem},
     gamelog::GameLog,
     gui,
-    inventory_system::{ItemColecctionSystem, ItemDropSystem, ItemUseSystem},
+    inventory_system::{ItemColecctionSystem, ItemDropSystem, ItemRemoveSystem, ItemUseSystem},
     map::{draw_map, Map},
     map_indexing_system::MapIndexingSystem,
     melee_combat_system::MeleeCombatSystem,
@@ -28,6 +28,7 @@ pub enum RunState {
     MonsterTurn,
     ShowInventory,
     ShowDropItem,
+    ShowRemoveItem,
     ShowTargeting {
         range: i32,
         item: Entity,
@@ -37,6 +38,7 @@ pub enum RunState {
         menu_selection: gui::MainMenuSelection,
     },
     SaveGame,
+    GameOver,
 }
 
 pub struct State {
@@ -69,6 +71,9 @@ impl State {
         let mut item_use = ItemUseSystem {};
         item_use.run_now(&self.world);
 
+        let mut item_remove = ItemRemoveSystem {};
+        item_remove.run_now(&self.world);
+
         self.world.maintain();
     }
 
@@ -79,6 +84,7 @@ impl State {
         let player = self.world.read_storage::<Player>();
         let backpack = self.world.read_storage::<InBackpack>();
         let player_entity = self.world.fetch::<Entity>();
+        let equipped = self.world.read_storage::<Equipped>();
 
         for entity in entities.join() {
             let mut should_delete = true;
@@ -89,6 +95,12 @@ impl State {
 
             if let Some(bp) = backpack.get(entity) {
                 if bp.owner == *player_entity {
+                    should_delete = false;
+                }
+            }
+
+            if let Some(equip) = equipped.get(entity) {
+                if equip.owner == *player_entity {
                     should_delete = false;
                 }
             }
@@ -146,6 +158,46 @@ impl State {
             player_health.hp = i32::max(player_health.hp, player_health.max_hp / 2);
         }
     }
+
+    fn game_over_cleanup(&mut self) {
+        let mut to_delete = Vec::new();
+        for entity in self.world.entities().join() {
+            to_delete.push(entity);
+        }
+        for entity in to_delete.iter() {
+            self.world.delete_entity(*entity).expect("Deletion failed");
+        }
+
+        let map;
+        {
+            let mut map_resource = self.world.write_resource::<Map>();
+            *map_resource = Map::new_map_rooms_and_corridors(1);
+            map = map_resource.clone();
+        }
+
+        for room in map.rooms.iter().skip(1) {
+            spawner::spawn_room(&mut self.world, room, 1);
+        }
+
+        let (player_x, player_y) = map.rooms[0].center();
+        let player_entity = spawner::player(&mut self.world, player_x, player_y);
+        let mut player_pos = self.world.write_resource::<Point>();
+        *player_pos = Point::new(player_x, player_y);
+
+        let mut player_entity_writer = self.world.write_resource::<Entity>();
+        *player_entity_writer = player_entity;
+
+        let mut position_components = self.world.write_storage::<Position>();
+        if let Some(player_pos_comp) = position_components.get_mut(player_entity) {
+            player_pos_comp.x = player_x;
+            player_pos_comp.y = player_y;
+        }
+
+        let mut viewshed_components = self.world.write_storage::<Viewshed>();
+        if let Some(vs) = viewshed_components.get_mut(player_entity) {
+            vs.dirty = true;
+        }
+    }
 }
 
 impl GameState for State {
@@ -156,6 +208,7 @@ impl GameState for State {
 
         match new_run_state {
             RunState::MainMenu { .. } => {}
+            RunState::GameOver { .. } => {}
             _ => {
                 draw_map(&self.world, ctx);
 
@@ -290,6 +343,25 @@ impl GameState for State {
                     },
                 }
             }
+            RunState::ShowRemoveItem => {
+                let (result, item_entity) = gui::remove_item_menu(self, ctx);
+                match result {
+                    gui::ItemMenuResult::Cancel => new_run_state = RunState::AwaitingInput,
+                    gui::ItemMenuResult::NoResponse => {}
+                    gui::ItemMenuResult::Selected => {
+                        let mut intent = self.world.write_storage::<WantsToRemoveItem>();
+                        intent
+                            .insert(
+                                *self.world.fetch::<Entity>(),
+                                WantsToRemoveItem {
+                                    item: item_entity.unwrap(),
+                                },
+                            )
+                            .expect("Unable to insert intent");
+                        new_run_state = RunState::PlayerTurn;
+                    }
+                }
+            }
             RunState::SaveGame => {
                 saveload_system::save_game(&mut self.world);
 
@@ -297,6 +369,15 @@ impl GameState for State {
                     menu_selection: gui::MainMenuSelection::Quit,
                 }
             }
+            RunState::GameOver => match gui::game_over(ctx) {
+                gui::GameOverResult::NoSelection => {}
+                gui::GameOverResult::QuitToMenu => {
+                    self.game_over_cleanup();
+                    new_run_state = RunState::MainMenu {
+                        menu_selection: gui::MainMenuSelection::NewGame,
+                    }
+                }
+            },
         };
 
         {

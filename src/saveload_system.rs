@@ -83,7 +83,12 @@ pub fn save_game(world: &mut World) {
             WantsToPickUpItem,
             WantsToUseItem,
             WantsToDropItem,
-            SerializationHelper
+            SerializationHelper,
+            Equippable,
+            Equipped,
+            MeleePowerBonus,
+            DefenseBonus,
+            WantsToRemoveItem
         );
     }
 
@@ -135,7 +140,12 @@ pub fn load_game(world: &mut World) {
             WantsToPickUpItem,
             WantsToUseItem,
             WantsToDropItem,
-            SerializationHelper
+            SerializationHelper,
+            Equippable,
+            Equipped,
+            MeleePowerBonus,
+            DefenseBonus,
+            WantsToRemoveItem
         );
     }
 

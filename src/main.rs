@@ -64,6 +64,11 @@ fn main() -> rltk::BError {
     game_state.world.register::<InflictsDamage>();
     game_state.world.register::<AreaOfEffect>();
     game_state.world.register::<Confusion>();
+    game_state.world.register::<Equippable>();
+    game_state.world.register::<Equipped>();
+    game_state.world.register::<MeleePowerBonus>();
+    game_state.world.register::<DefenseBonus>();
+    game_state.world.register::<WantsToRemoveItem>();
     game_state.world.register::<SimpleMarker<SerializeMe>>();
     game_state.world.register::<SerializationHelper>();
 

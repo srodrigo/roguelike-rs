@@ -36,6 +36,7 @@ pub fn player_input(world: &mut World, ctx: &mut Rltk) -> RunState {
             VirtualKeyCode::D => return RunState::ShowDropItem,
             VirtualKeyCode::G => get_item(world),
             VirtualKeyCode::I => return RunState::ShowInventory,
+            VirtualKeyCode::R => return RunState::ShowRemoveItem,
             VirtualKeyCode::Period => {
                 if try_next_level(world) {
                     return RunState::NextLevel;

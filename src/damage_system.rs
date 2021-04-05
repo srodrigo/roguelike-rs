@@ -1,6 +1,7 @@
 use crate::{
     components::{CombatStats, Name, Player, SuffersDamage},
     gamelog::GameLog,
+    state::RunState,
 };
 use specs::prelude::*;
 
@@ -41,7 +42,10 @@ pub fn delete_the_dead(world: &mut World) {
                         }
                         dead.push(entity)
                     }
-                    Some(_) => log.entries.push("You are dead".to_string()),
+                    Some(_) => {
+                        let mut run_state = world.write_resource::<RunState>();
+                        *run_state = RunState::GameOver;
+                    }
                 }
             }
         }
