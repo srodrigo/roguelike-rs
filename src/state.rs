@@ -15,6 +15,7 @@ use crate::{
     map_indexing_system::MapIndexingSystem,
     melee_combat_system::MeleeCombatSystem,
     monster_ai_system::MonsterAI,
+    particles::{self, ParticleSpawnSystem},
     player::player_input,
     saveload_system, spawner,
     visibility_system::VisibilitySystem,
@@ -73,6 +74,9 @@ impl State {
 
         let mut item_remove = ItemRemoveSystem {};
         item_remove.run_now(&self.world);
+
+        let mut particles = ParticleSpawnSystem {};
+        particles.run_now(&self.world);
 
         self.world.maintain();
     }
@@ -203,6 +207,7 @@ impl State {
 impl GameState for State {
     fn tick(&mut self, ctx: &mut Rltk) {
         ctx.cls();
+        particles::cull_dead_particles(&mut self.world, ctx);
 
         let mut new_run_state = *self.world.fetch::<RunState>();
 

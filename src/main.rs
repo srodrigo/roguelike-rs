@@ -28,6 +28,7 @@ mod inventory_system;
 mod map_indexing_system;
 mod melee_combat_system;
 mod monster_ai_system;
+mod particles;
 mod saveload_system;
 mod visibility_system;
 
@@ -70,6 +71,7 @@ fn main() -> rltk::BError {
     game_state.world.register::<MeleePowerBonus>();
     game_state.world.register::<DefenseBonus>();
     game_state.world.register::<WantsToRemoveItem>();
+    game_state.world.register::<ParticleLifetime>();
     game_state.world.register::<SimpleMarker<SerializeMe>>();
     game_state.world.register::<SerializationHelper>();
 
@@ -79,6 +81,8 @@ fn main() -> rltk::BError {
     game_state
         .world
         .insert(SimpleMarkerAllocator::<SerializeMe>::new());
+
+    game_state.world.insert(particles::ParticlesBuilder::new());
 
     let map = Map::new_map_rooms_and_corridors(1);
 

@@ -4,6 +4,7 @@ use specs::prelude::*;
 use crate::{
     components::{Confusion, Monster, Position, Viewshed, WantsToMelee},
     map::Map,
+    particles::ParticlesBuilder,
     RunState,
 };
 
@@ -22,6 +23,7 @@ impl<'a> System<'a> for MonsterAI {
         WriteStorage<'a, Position>,
         WriteStorage<'a, WantsToMelee>,
         WriteStorage<'a, Confusion>,
+        WriteExpect<'a, ParticlesBuilder>,
     );
 
     fn run(&mut self, data: Self::SystemData) {
@@ -36,6 +38,7 @@ impl<'a> System<'a> for MonsterAI {
             mut position,
             mut wants_to_melee,
             mut confused,
+            mut particles_builder,
         ) = data;
 
         if *run_state != RunState::MonsterTurn {
@@ -52,6 +55,15 @@ impl<'a> System<'a> for MonsterAI {
                     if monster_confused.turns < 1 {
                         confused.remove(entity);
                     }
+
+                    particles_builder.request(
+                        pos.x,
+                        pos.y,
+                        rltk::RGB::named(rltk::MAGENTA),
+                        rltk::RGB::named(rltk::BLACK),
+                        rltk::to_cp437('?'),
+                        200.0,
+                    );
                 }
                 None => {
                     let distance = rltk::DistanceAlg::Pythagoras
