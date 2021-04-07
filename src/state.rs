@@ -10,6 +10,7 @@ use crate::{
     damage::{self, DamageSystem},
     gamelog::GameLog,
     gui,
+    hunger::HungerSystem,
     inventory::{ItemColecctionSystem, ItemDropSystem, ItemRemoveSystem, ItemUseSystem},
     map::{draw_map, Map},
     map_indexing::MapIndexingSystem,
@@ -74,6 +75,9 @@ impl State {
 
         let mut item_remove = ItemRemoveSystem {};
         item_remove.run_now(&self.world);
+
+        let mut hunger = HungerSystem {};
+        hunger.run_now(&self.world);
 
         let mut particles = ParticleSpawnSystem {};
         particles.run_now(&self.world);

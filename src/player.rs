@@ -5,7 +5,8 @@ use specs::prelude::*;
 
 use crate::{
     components::{
-        CombatStats, Item, Monster, Player, Position, Viewshed, WantsToMelee, WantsToPickUpItem,
+        CombatStats, HungerClock, HungerState, Item, Monster, Player, Position, Viewshed,
+        WantsToMelee, WantsToPickUpItem,
     },
     gamelog::GameLog,
     map::{Map, TileType},
@@ -142,8 +143,18 @@ fn get_item(world: &mut World) {
 
 fn skip_turn(world: &mut World) -> RunState {
     let player_entity = world.fetch::<Entity>();
+    let mut can_heal = can_heal(&world, &player_entity);
 
-    if can_heal(&world, &player_entity) {
+    let hunger_clocks = world.read_storage::<HungerClock>();
+    if let Some(hunger_clock) = hunger_clocks.get(*player_entity) {
+        match hunger_clock.state {
+            HungerState::Hungry => can_heal = false,
+            HungerState::Starving => can_heal = false,
+            _ => {}
+        }
+    }
+
+    if can_heal {
         let mut health_components = world.write_storage::<CombatStats>();
         let player_hp = health_components.get_mut(*player_entity).unwrap();
         player_hp.hp = i32::min(player_hp.hp + 1, player_hp.max_hp);

@@ -4,7 +4,10 @@ use rltk::{Point, Rltk, VirtualKeyCode, RGB};
 use specs::prelude::*;
 
 use crate::{
-    components::{CombatStats, Equipped, InBackpack, Name, Player, Position, Viewshed},
+    components::{
+        CombatStats, Equipped, HungerClock, HungerState, InBackpack, Name, Player, Position,
+        Viewshed,
+    },
     gamelog::GameLog,
     map::Map,
     saveload::is_game_saved,
@@ -362,7 +365,8 @@ pub fn draw_ui(world: &World, ctx: &mut Rltk) {
 
     let combat_stats = world.read_storage::<CombatStats>();
     let players = world.read_storage::<Player>();
-    for (_player, stats) in (&players, &combat_stats).join() {
+    let hunger_clock = world.read_storage::<HungerClock>();
+    for (_player, stats, hunger) in (&players, &combat_stats, &hunger_clock).join() {
         let health = format!(" HP: {} / {} ", stats.hp, stats.max_hp);
         ctx.print_color(
             12,
@@ -379,7 +383,32 @@ pub fn draw_ui(world: &World, ctx: &mut Rltk) {
             stats.max_hp,
             RGB::named(rltk::RED),
             RGB::named(rltk::BLACK),
-        )
+        );
+
+        match hunger.state {
+            HungerState::WellFed => ctx.print_color(
+                71,
+                42,
+                RGB::named(rltk::GREEN),
+                RGB::named(rltk::BLACK),
+                "Well Fed",
+            ),
+            HungerState::Normal => {}
+            HungerState::Hungry => ctx.print_color(
+                71,
+                42,
+                RGB::named(rltk::ORANGE),
+                RGB::named(rltk::BLACK),
+                "Hungry",
+            ),
+            HungerState::Starving => ctx.print_color(
+                71,
+                42,
+                RGB::named(rltk::RED),
+                RGB::named(rltk::BLACK),
+                "Starving",
+            ),
+        }
     }
 
     let log = world.read_resource::<GameLog>();

@@ -1,7 +1,7 @@
 use crate::{
     components::{
-        CombatStats, DefenseBonus, Equipped, MeleePowerBonus, Name, Position, SuffersDamage,
-        WantsToMelee,
+        CombatStats, DefenseBonus, Equipped, HungerClock, HungerState, MeleePowerBonus, Name,
+        Position, SuffersDamage, WantsToMelee,
     },
     gamelog::GameLog,
     particles::ParticlesBuilder,
@@ -21,6 +21,7 @@ impl<'a> System<'a> for MeleeCombatSystem {
         ReadStorage<'a, MeleePowerBonus>,
         ReadStorage<'a, DefenseBonus>,
         ReadStorage<'a, Equipped>,
+        ReadStorage<'a, HungerClock>,
         WriteExpect<'a, ParticlesBuilder>,
         ReadStorage<'a, Position>,
     );
@@ -36,6 +37,7 @@ impl<'a> System<'a> for MeleeCombatSystem {
             melee_power_bonuses,
             defense_bonuses,
             equipped,
+            hunger_clocks,
             mut particles_builder,
             positions,
         ) = data;
@@ -50,6 +52,12 @@ impl<'a> System<'a> for MeleeCombatSystem {
                 {
                     if equipped_by.owner == entity {
                         offensive_bonus += power_bonus.power;
+                    }
+                }
+
+                if let Some(hunger_clock) = hunger_clocks.get(entity) {
+                    if hunger_clock.state == HungerState::WellFed {
+                        offensive_bonus += 1;
                     }
                 }
 

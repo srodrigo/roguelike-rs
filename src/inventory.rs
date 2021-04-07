@@ -3,9 +3,9 @@ use specs::prelude::*;
 
 use crate::{
     components::{
-        AreaOfEffect, CombatStats, Confusion, Consumable, Equippable, Equipped, InBackpack,
-        InflictsDamage, Name, Position, ProvidesHealing, SuffersDamage, WantsToDropItem,
-        WantsToPickUpItem, WantsToRemoveItem, WantsToUseItem,
+        AreaOfEffect, CombatStats, Confusion, Consumable, Equippable, Equipped, HungerClock,
+        HungerState, InBackpack, InflictsDamage, Name, Position, ProvidesFood, ProvidesHealing,
+        SuffersDamage, WantsToDropItem, WantsToPickUpItem, WantsToRemoveItem, WantsToUseItem,
     },
     gamelog::GameLog,
     map::Map,
@@ -71,6 +71,8 @@ impl<'a> System<'a> for ItemUseSystem {
         WriteStorage<'a, CombatStats>,
         ReadStorage<'a, Equippable>,
         WriteStorage<'a, Equipped>,
+        ReadStorage<'a, ProvidesFood>,
+        WriteStorage<'a, HungerClock>,
         WriteStorage<'a, InBackpack>,
         WriteExpect<'a, ParticlesBuilder>,
         ReadStorage<'a, Position>,
@@ -93,6 +95,8 @@ impl<'a> System<'a> for ItemUseSystem {
             mut combat_stats,
             equippable,
             mut equipped,
+            provides_food,
+            mut hunger_clocks,
             mut backpack,
             mut particles_builder,
             positions,
@@ -280,6 +284,22 @@ impl<'a> System<'a> for ItemUseSystem {
                     if target == *player_entity {
                         gamelog.entries.push(format!(
                             "You equip {}.",
+                            names.get(use_item.item).unwrap().name
+                        ));
+                    }
+                }
+            }
+
+            let item_edible = provides_food.get(use_item.item);
+            match item_edible {
+                None => {}
+                Some(_) => {
+                    let target = targets[0];
+                    if let Some(hunger_clock) = hunger_clocks.get_mut(target) {
+                        hunger_clock.state = HungerState::WellFed;
+                        hunger_clock.duration = 200;
+                        gamelog.entries.push(format!(
+                            "You eat the {}.",
                             names.get(use_item.item).unwrap().name
                         ));
                     }

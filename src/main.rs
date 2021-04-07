@@ -24,6 +24,7 @@ use gamelog::GameLog;
 mod spawner;
 
 mod damage;
+mod hunger;
 mod inventory;
 mod map_indexing;
 mod melee_combat;
@@ -72,6 +73,8 @@ fn main() -> rltk::BError {
     game_state.world.register::<DefenseBonus>();
     game_state.world.register::<WantsToRemoveItem>();
     game_state.world.register::<ParticleLifetime>();
+    game_state.world.register::<HungerClock>();
+    game_state.world.register::<ProvidesFood>();
     game_state.world.register::<SimpleMarker<SerializeMe>>();
     game_state.world.register::<SerializationHelper>();
 

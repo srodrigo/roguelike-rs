@@ -89,7 +89,9 @@ pub fn save_game(world: &mut World) {
             MeleePowerBonus,
             DefenseBonus,
             WantsToRemoveItem,
-            ParticleLifetime
+            ParticleLifetime,
+            HungerClock,
+            ProvidesFood
         );
     }
 
@@ -147,7 +149,9 @@ pub fn load_game(world: &mut World) {
             MeleePowerBonus,
             DefenseBonus,
             WantsToRemoveItem,
-            ParticleLifetime
+            ParticleLifetime,
+            HungerClock,
+            ProvidesFood
         );
     }
 

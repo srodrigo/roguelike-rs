@@ -9,8 +9,8 @@ use specs::{
 use crate::{
     components::{
         AreaOfEffect, BlocksTile, CombatStats, Confusion, Consumable, DefenseBonus, EquipmentSlot,
-        Equippable, InflictsDamage, Item, MeleePowerBonus, Monster, Name, Player, Position,
-        ProvidesHealing, Ranged, Renderable, SerializeMe, Viewshed,
+        Equippable, HungerClock, InflictsDamage, Item, MeleePowerBonus, Monster, Name, Player,
+        Position, ProvidesFood, ProvidesHealing, Ranged, Renderable, SerializeMe, Viewshed,
     },
     map::MAP_WIDTH,
     random_table::RandomTable,
@@ -35,6 +35,10 @@ pub fn player(world: &mut World, player_x: i32, player_y: i32) -> Entity {
             hp: 30,
             defense: 2,
             power: 5,
+        })
+        .with(HungerClock {
+            state: crate::components::HungerState::WellFed,
+            duration: 20,
         })
         .with(Viewshed {
             visible_tiles: Vec::new(),
@@ -89,6 +93,26 @@ fn monster<S: ToString>(world: &mut World, x: i32, y: i32, glyph: FontCharType, 
         .build();
 }
 
+fn rations(world: &mut World, x: i32, y: i32) {
+    world
+        .create_entity()
+        .with(Position { x, y })
+        .with(Name {
+            name: "Rations".to_string(),
+        })
+        .with(Item {})
+        .with(ProvidesFood {})
+        .with(Consumable {})
+        .with(Renderable {
+            glyph: rltk::to_cp437('%'),
+            fg: RGB::named(rltk::GREEN),
+            bg: RGB::named(rltk::BLACK),
+            render_order: 2,
+        })
+        .marked::<SimpleMarker<SerializeMe>>()
+        .build();
+}
+
 pub fn spawn_room(world: &mut World, room: &Rect, map_depth: i32) {
     let spawn_table = room_table(map_depth);
     let mut spawn_points: HashMap<usize, String> = HashMap::new();
@@ -129,6 +153,7 @@ pub fn spawn_room(world: &mut World, room: &Rect, map_depth: i32) {
             "Shield" => shield(world, x, y),
             "Longsword" => longsword(world, x, y),
             "Tower Shield" => tower_shield(world, x, y),
+            "Rations" => rations(world, x, y),
             _ => {}
         }
     }
@@ -318,4 +343,5 @@ fn room_table(map_depth: i32) -> RandomTable {
         .add("Shield", 3)
         .add("Longsword", map_depth - 1)
         .add("Tower Shield", map_depth - 1)
+        .add("Rations", 10)
 }
