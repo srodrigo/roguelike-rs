@@ -9,8 +9,8 @@ use specs::{
 use crate::{
     components::{
         AreaOfEffect, BlocksTile, CombatStats, Confusion, Consumable, DefenseBonus, EquipmentSlot,
-        Equippable, HungerClock, InflictsDamage, Item, MeleePowerBonus, Monster, Name, Player,
-        Position, ProvidesFood, ProvidesHealing, Ranged, Renderable, SerializeMe, Viewshed,
+        Equippable, HungerClock, InflictsDamage, Item, MagicMapper, MeleePowerBonus, Monster, Name,
+        Player, Position, ProvidesFood, ProvidesHealing, Ranged, Renderable, SerializeMe, Viewshed,
     },
     map::MAP_WIDTH,
     random_table::RandomTable,
@@ -149,6 +149,7 @@ pub fn spawn_room(world: &mut World, room: &Rect, map_depth: i32) {
             "Fireball Scroll" => fireball_scroll(world, x, y),
             "Confusion Scroll" => confusion_scroll(world, x, y),
             "Magic Missile Scroll" => magic_missile_scroll(world, x, y),
+            "Magic Mapping Scroll" => magic_mapping_scroll(world, x, y),
             "Dagger" => dagger(world, x, y),
             "Shield" => shield(world, x, y),
             "Longsword" => longsword(world, x, y),
@@ -236,6 +237,26 @@ fn magic_missile_scroll(world: &mut World, x: i32, y: i32) {
         .with(Renderable {
             glyph: rltk::to_cp437(')'),
             fg: RGB::named(rltk::CYAN),
+            bg: RGB::named(rltk::BLACK),
+            render_order: 2,
+        })
+        .marked::<SimpleMarker<SerializeMe>>()
+        .build();
+}
+
+fn magic_mapping_scroll(world: &mut World, x: i32, y: i32) {
+    world
+        .create_entity()
+        .with(Position { x, y })
+        .with(Name {
+            name: "Scroll of Magic Mapping".to_string(),
+        })
+        .with(Item {})
+        .with(Consumable {})
+        .with(MagicMapper {})
+        .with(Renderable {
+            glyph: rltk::to_cp437(')'),
+            fg: RGB::named(rltk::CYAN3),
             bg: RGB::named(rltk::BLACK),
             render_order: 2,
         })
@@ -339,6 +360,7 @@ fn room_table(map_depth: i32) -> RandomTable {
         .add("Fireball Scroll", 2 + map_depth)
         .add("Confusion Scroll", 2 + map_depth)
         .add("Magic Missile Scroll", 4)
+        .add("Magic Mapping Scroll", 2)
         .add("Dagger", 3)
         .add("Shield", 3)
         .add("Longsword", map_depth - 1)

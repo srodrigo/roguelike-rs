@@ -167,6 +167,9 @@ pub struct HungerClock {
 #[derive(Component, Serialize, Deserialize, Clone, Debug)]
 pub struct ProvidesFood {}
 
+#[derive(Component, Serialize, Deserialize, Clone, Debug)]
+pub struct MagicMapper {}
+
 pub struct SerializeMe;
 
 #[derive(Component, Serialize, Deserialize, Clone)]

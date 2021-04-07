@@ -12,7 +12,7 @@ use crate::{
     gui,
     hunger::HungerSystem,
     inventory::{ItemColecctionSystem, ItemDropSystem, ItemRemoveSystem, ItemUseSystem},
-    map::{draw_map, Map},
+    map::{draw_map, Map, MAP_HEIGHT, MAP_WIDTH},
     map_indexing::MapIndexingSystem,
     melee_combat::MeleeCombatSystem,
     monster_ai::MonsterAI,
@@ -36,6 +36,9 @@ pub enum RunState {
         item: Entity,
     },
     NextLevel,
+    MagicMapReveal {
+        row: i32,
+    },
     MainMenu {
         menu_selection: gui::MainMenuSelection,
     },
@@ -253,7 +256,12 @@ impl GameState for State {
             RunState::PlayerTurn => {
                 self.run_systems();
                 self.world.maintain();
-                new_run_state = RunState::MonsterTurn;
+                match *self.world.fetch::<RunState>() {
+                    RunState::MagicMapReveal { .. } => {
+                        new_run_state = RunState::MagicMapReveal { row: 0 }
+                    }
+                    _ => new_run_state = RunState::MonsterTurn,
+                }
             }
             RunState::MonsterTurn => {
                 self.run_systems();
@@ -369,6 +377,19 @@ impl GameState for State {
                             .expect("Unable to insert intent");
                         new_run_state = RunState::PlayerTurn;
                     }
+                }
+            }
+            RunState::MagicMapReveal { row } => {
+                let mut map = self.world.fetch_mut::<Map>();
+                for x in 0..MAP_WIDTH {
+                    let idx = map.xy_idx(x as i32, row);
+                    map.revealed_tiles[idx] = true;
+                }
+
+                if row as usize == MAP_HEIGHT - 1 {
+                    new_run_state = RunState::MonsterTurn;
+                } else {
+                    new_run_state = RunState::MagicMapReveal { row: row + 1 };
                 }
             }
             RunState::SaveGame => {

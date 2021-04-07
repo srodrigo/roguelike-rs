@@ -75,6 +75,7 @@ fn main() -> rltk::BError {
     game_state.world.register::<ParticleLifetime>();
     game_state.world.register::<HungerClock>();
     game_state.world.register::<ProvidesFood>();
+    game_state.world.register::<MagicMapper>();
     game_state.world.register::<SimpleMarker<SerializeMe>>();
     game_state.world.register::<SerializationHelper>();
 

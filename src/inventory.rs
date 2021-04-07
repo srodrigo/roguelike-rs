@@ -4,12 +4,14 @@ use specs::prelude::*;
 use crate::{
     components::{
         AreaOfEffect, CombatStats, Confusion, Consumable, Equippable, Equipped, HungerClock,
-        HungerState, InBackpack, InflictsDamage, Name, Position, ProvidesFood, ProvidesHealing,
-        SuffersDamage, WantsToDropItem, WantsToPickUpItem, WantsToRemoveItem, WantsToUseItem,
+        HungerState, InBackpack, InflictsDamage, MagicMapper, Name, Position, ProvidesFood,
+        ProvidesHealing, SuffersDamage, WantsToDropItem, WantsToPickUpItem, WantsToRemoveItem,
+        WantsToUseItem,
     },
     gamelog::GameLog,
     map::Map,
     particles::ParticlesBuilder,
+    state::RunState,
 };
 
 pub struct ItemColecctionSystem {}
@@ -57,7 +59,8 @@ impl<'a> System<'a> for ItemUseSystem {
     #[allow(clippy::type_complexity)]
     type SystemData = (
         ReadExpect<'a, Entity>,
-        ReadExpect<'a, Map>,
+        WriteExpect<'a, Map>,
+        WriteExpect<'a, RunState>,
         WriteExpect<'a, GameLog>,
         Entities<'a>,
         WriteStorage<'a, WantsToUseItem>,
@@ -73,6 +76,7 @@ impl<'a> System<'a> for ItemUseSystem {
         WriteStorage<'a, Equipped>,
         ReadStorage<'a, ProvidesFood>,
         WriteStorage<'a, HungerClock>,
+        ReadStorage<'a, MagicMapper>,
         WriteStorage<'a, InBackpack>,
         WriteExpect<'a, ParticlesBuilder>,
         ReadStorage<'a, Position>,
@@ -81,7 +85,8 @@ impl<'a> System<'a> for ItemUseSystem {
     fn run(&mut self, data: Self::SystemData) {
         let (
             player_entity,
-            map,
+            mut map,
+            mut runstate,
             mut gamelog,
             entities,
             mut wants_use,
@@ -97,6 +102,7 @@ impl<'a> System<'a> for ItemUseSystem {
             mut equipped,
             provides_food,
             mut hunger_clocks,
+            magic_mappers,
             mut backpack,
             mut particles_builder,
             positions,
@@ -303,6 +309,20 @@ impl<'a> System<'a> for ItemUseSystem {
                             names.get(use_item.item).unwrap().name
                         ));
                     }
+                }
+            }
+
+            let magic_mapper = magic_mappers.get(use_item.item);
+            match magic_mapper {
+                None => {}
+                Some(_) => {
+                    for tile in map.revealed_tiles.iter_mut() {
+                        *tile = true;
+                    }
+                    gamelog
+                        .entries
+                        .push("The map is revealed to you!".to_string());
+                    *runstate = RunState::MagicMapReveal { row: 0 };
                 }
             }
         }
