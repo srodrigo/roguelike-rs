@@ -578,60 +578,83 @@ pub fn main_menu(game_state: &mut State, ctx: &mut Rltk) -> MainMenuResult {
     let game_saved = is_game_saved();
     let run_state = game_state.world.fetch::<RunState>();
 
+    ctx.draw_box_double(
+        24,
+        18,
+        31,
+        10,
+        RGB::named(rltk::WHEAT),
+        RGB::named(rltk::BLACK),
+    );
     ctx.print_color_centered(
-        15,
+        20,
         RGB::named(rltk::YELLOW),
         RGB::named(rltk::BLACK),
         "Rust Roguelike Tutorial",
     );
+    ctx.print_color_centered(
+        21,
+        RGB::named(rltk::CYAN),
+        RGB::named(rltk::BLACK),
+        "by Herbert Wolverson",
+    );
+    ctx.print_color_centered(
+        22,
+        RGB::named(rltk::GRAY),
+        RGB::named(rltk::BLACK),
+        "Use Up/Down Arrows and Enter",
+    );
 
+    let mut y = 24;
     if let RunState::MainMenu {
         menu_selection: selection,
     } = *run_state
     {
         if selection == MainMenuSelection::NewGame {
             ctx.print_color_centered(
-                24,
+                y,
                 RGB::named(rltk::MAGENTA),
                 RGB::named(rltk::BLACK),
                 "Begin New Game",
             );
         } else {
             ctx.print_color_centered(
-                24,
+                y,
                 RGB::named(rltk::WHITE),
                 RGB::named(rltk::BLACK),
                 "Begin New Game",
             );
         }
+        y += 1;
 
         if game_saved {
             if selection == MainMenuSelection::LoadGame {
                 ctx.print_color_centered(
-                    25,
+                    y,
                     RGB::named(rltk::MAGENTA),
                     RGB::named(rltk::BLACK),
                     "Load Game",
                 );
             } else {
                 ctx.print_color_centered(
-                    25,
+                    y,
                     RGB::named(rltk::WHITE),
                     RGB::named(rltk::BLACK),
                     "Load Game",
                 );
             }
+            y += 1;
         }
 
         if selection == MainMenuSelection::Quit {
             ctx.print_color_centered(
-                26,
+                y,
                 RGB::named(rltk::MAGENTA),
                 RGB::named(rltk::BLACK),
                 "Quit",
             );
         } else {
-            ctx.print_color_centered(26, RGB::named(rltk::WHITE), RGB::named(rltk::BLACK), "Quit");
+            ctx.print_color_centered(y, RGB::named(rltk::WHITE), RGB::named(rltk::BLACK), "Quit");
         }
 
         match ctx.key {
