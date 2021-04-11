@@ -5,8 +5,8 @@ use specs::prelude::*;
 
 use crate::{
     components::{
-        CombatStats, HungerClock, HungerState, Item, Monster, Player, Position, Viewshed,
-        WantsToMelee, WantsToPickUpItem,
+        CombatStats, EntityMoved, HungerClock, HungerState, Item, Monster, Player, Position,
+        Viewshed, WantsToMelee, WantsToPickUpItem,
     },
     gamelog::GameLog,
     map::{Map, TileType},
@@ -59,6 +59,7 @@ pub fn try_move_player(delta_x: i32, delta_y: i32, world: &mut World) {
     let map = world.fetch::<Map>();
     let entities = world.entities();
     let mut wants_to_melee = world.write_storage::<WantsToMelee>();
+    let mut entity_moved = world.write_storage::<EntityMoved>();
 
     for (entity, _player, pos, viewshed) in
         (&entities, &mut players, &mut positions, &mut viewshed).join()
@@ -86,6 +87,10 @@ pub fn try_move_player(delta_x: i32, delta_y: i32, world: &mut World) {
             let mut player_pos = world.write_resource::<Point>();
             player_pos.x = pos.x;
             player_pos.y = pos.y;
+
+            entity_moved
+                .insert(entity, EntityMoved {})
+                .expect("Unable to insert maker");
 
             viewshed.dirty = true;
         }

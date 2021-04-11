@@ -170,6 +170,18 @@ pub struct ProvidesFood {}
 #[derive(Component, Serialize, Deserialize, Clone, Debug)]
 pub struct MagicMapper {}
 
+#[derive(Component, Serialize, Deserialize, Clone, Debug)]
+pub struct Hidden {}
+
+#[derive(Component, Serialize, Deserialize, Clone, Debug)]
+pub struct EntryTrigger {}
+
+#[derive(Component, Serialize, Deserialize, Clone, Debug)]
+pub struct EntityMoved {}
+
+#[derive(Component, Serialize, Deserialize, Clone, Debug)]
+pub struct SingleActivation {}
+
 pub struct SerializeMe;
 
 #[derive(Component, Serialize, Deserialize, Clone)]

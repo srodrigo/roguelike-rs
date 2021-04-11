@@ -8,9 +8,10 @@ use specs::{
 
 use crate::{
     components::{
-        AreaOfEffect, BlocksTile, CombatStats, Confusion, Consumable, DefenseBonus, EquipmentSlot,
-        Equippable, HungerClock, InflictsDamage, Item, MagicMapper, MeleePowerBonus, Monster, Name,
-        Player, Position, ProvidesFood, ProvidesHealing, Ranged, Renderable, SerializeMe, Viewshed,
+        AreaOfEffect, BlocksTile, CombatStats, Confusion, Consumable, DefenseBonus, EntryTrigger,
+        EquipmentSlot, Equippable, Hidden, HungerClock, InflictsDamage, Item, MagicMapper,
+        MeleePowerBonus, Monster, Name, Player, Position, ProvidesFood, ProvidesHealing, Ranged,
+        Renderable, SerializeMe, SingleActivation, Viewshed,
     },
     map::MAP_WIDTH,
     random_table::RandomTable,
@@ -155,6 +156,7 @@ pub fn spawn_room(world: &mut World, room: &Rect, map_depth: i32) {
             "Longsword" => longsword(world, x, y),
             "Tower Shield" => tower_shield(world, x, y),
             "Rations" => rations(world, x, y),
+            "Bear Trap" => bear_trap(world, x, y),
             _ => {}
         }
     }
@@ -352,6 +354,27 @@ fn tower_shield(world: &mut World, x: i32, y: i32) {
         .build();
 }
 
+fn bear_trap(world: &mut World, x: i32, y: i32) {
+    world
+        .create_entity()
+        .with(Position { x, y })
+        .with(Name {
+            name: "Bear Trap".to_string(),
+        })
+        .with(Hidden {})
+        .with(EntryTrigger {})
+        .with(InflictsDamage { damage: 6 })
+        .with(SingleActivation {})
+        .with(Renderable {
+            glyph: rltk::to_cp437('^'),
+            fg: RGB::named(rltk::RED),
+            bg: RGB::named(rltk::BLACK),
+            render_order: 2,
+        })
+        .marked::<SimpleMarker<SerializeMe>>()
+        .build();
+}
+
 fn room_table(map_depth: i32) -> RandomTable {
     RandomTable::new()
         .add("Goblin", 10)
@@ -366,4 +389,5 @@ fn room_table(map_depth: i32) -> RandomTable {
         .add("Longsword", map_depth - 1)
         .add("Tower Shield", map_depth - 1)
         .add("Rations", 10)
+        .add("Bear Trap", 2)
 }

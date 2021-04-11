@@ -4,7 +4,7 @@ use specs::World;
 
 use crate::{
     components::{
-        CombatStats, Equipped, InBackpack, Player, Position, Ranged, Renderable, Viewshed,
+        CombatStats, Equipped, Hidden, InBackpack, Player, Position, Ranged, Renderable, Viewshed,
         WantsToDropItem, WantsToRemoveItem, WantsToUseItem,
     },
     damage::{self, DamageSystem},
@@ -19,6 +19,7 @@ use crate::{
     particles::{self, ParticleSpawnSystem},
     player::player_input,
     saveload, spawner,
+    trigger::TriggerSystem,
     visibility::VisibilitySystem,
 };
 
@@ -57,6 +58,9 @@ impl State {
 
         let mut monster_ai = MonsterAI {};
         monster_ai.run_now(&self.world);
+
+        let mut triggers = TriggerSystem {};
+        triggers.run_now(&self.world);
 
         let mut map_indexing = MapIndexingSystem {};
         map_indexing.run_now(&self.world);
@@ -227,11 +231,14 @@ impl GameState for State {
                 {
                     let positions = self.world.read_storage::<Position>();
                     let renderables = self.world.read_storage::<Renderable>();
+                    let hidden = self.world.read_storage::<Hidden>();
                     let map = self.world.fetch::<Map>();
 
-                    let mut data = (&positions, &renderables).join().collect::<Vec<_>>();
+                    let mut data = (&positions, &renderables, !&hidden)
+                        .join()
+                        .collect::<Vec<_>>();
                     data.sort_by(|&a, &b| b.1.render_order.cmp(&a.1.render_order));
-                    for (pos, render) in data.iter() {
+                    for (pos, render, _hidden) in data.iter() {
                         let idx = map.xy_idx(pos.x, pos.y);
                         if map.visible_tiles[idx] {
                             ctx.set(pos.x, pos.y, render.fg, render.bg, render.glyph);

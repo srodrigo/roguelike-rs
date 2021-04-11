@@ -31,6 +31,7 @@ mod melee_combat;
 mod monster_ai;
 mod particles;
 mod saveload;
+mod trigger;
 mod visibility;
 
 mod random_table;
@@ -76,6 +77,10 @@ fn main() -> rltk::BError {
     game_state.world.register::<HungerClock>();
     game_state.world.register::<ProvidesFood>();
     game_state.world.register::<MagicMapper>();
+    game_state.world.register::<Hidden>();
+    game_state.world.register::<EntryTrigger>();
+    game_state.world.register::<EntityMoved>();
+    game_state.world.register::<SingleActivation>();
     game_state.world.register::<SimpleMarker<SerializeMe>>();
     game_state.world.register::<SerializationHelper>();
 

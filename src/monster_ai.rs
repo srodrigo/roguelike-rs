@@ -2,7 +2,7 @@ use rltk::Point;
 use specs::prelude::*;
 
 use crate::{
-    components::{Confusion, Monster, Position, Viewshed, WantsToMelee},
+    components::{Confusion, EntityMoved, Monster, Position, Viewshed, WantsToMelee},
     map::Map,
     particles::ParticlesBuilder,
     RunState,
@@ -23,6 +23,7 @@ impl<'a> System<'a> for MonsterAI {
         WriteStorage<'a, Position>,
         WriteStorage<'a, WantsToMelee>,
         WriteStorage<'a, Confusion>,
+        WriteStorage<'a, EntityMoved>,
         WriteExpect<'a, ParticlesBuilder>,
     );
 
@@ -38,6 +39,7 @@ impl<'a> System<'a> for MonsterAI {
             mut position,
             mut wants_to_melee,
             mut confused,
+            mut entity_moved,
             mut particles_builder,
         ) = data;
 
@@ -88,6 +90,9 @@ impl<'a> System<'a> for MonsterAI {
                             map.blocked[idx] = false;
                             pos.x = path.steps[1] as i32 % map.width;
                             pos.y = path.steps[1] as i32 / map.width;
+                            entity_moved
+                                .insert(entity, EntityMoved {})
+                                .expect("Unable to insert maker");
                             idx = map.xy_idx(pos.x, pos.y);
                             map.blocked[idx] = true;
                             viewshed.dirty = true;
