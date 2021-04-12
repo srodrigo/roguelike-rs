@@ -1,3 +1,4 @@
+use map::Map;
 use rltk::Point;
 use rltk::RandomNumberGenerator;
 use specs::prelude::*;
@@ -93,26 +94,18 @@ fn main() -> rltk::BError {
 
     game_state.world.insert(particles::ParticlesBuilder::new());
 
-    let mut map_builder = maps::random_builder(1);
-    map_builder.build_map();
-    let player_start = map_builder.get_starting_position();
-    let map = map_builder.get_map();
-
+    game_state.world.insert(Map::new(1));
+    game_state.world.insert(Point::new(0, 0));
     game_state.world.insert(RandomNumberGenerator::new());
 
-    map_builder.spawn_entities(&mut game_state.world);
-
-    let (player_x, player_y) = (player_start.x, player_start.y);
-    game_state.world.insert(Point::new(player_x, player_y));
-
-    game_state.world.insert(map);
-
-    let player = spawner::player(&mut game_state.world, player_x, player_y);
+    let player = spawner::player(&mut game_state.world, 0, 0);
     game_state.world.insert(player);
 
     game_state.world.insert(GameLog {
         entries: vec!["Welcome to Rusty Roguelike".to_string()],
     });
+
+    game_state.generate_world_map(1);
 
     rltk::main_loop(context, game_state)
 }

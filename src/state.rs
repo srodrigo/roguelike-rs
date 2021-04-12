@@ -136,14 +136,32 @@ impl State {
                 .expect("Unable to delete entity");
         }
 
-        let mut map_builder;
         let current_depth;
+        {
+            let worldmap_resource = self.world.write_resource::<Map>();
+            current_depth = worldmap_resource.depth;
+        }
+        self.generate_world_map(current_depth + 1);
+
+        let player_entity = self.world.fetch::<Entity>();
+
+        let mut gamelog = self.world.fetch_mut::<GameLog>();
+        gamelog
+            .entries
+            .push("You descend to the next level, and take a moment to heal.".to_string());
+        let mut player_health_store = self.world.write_storage::<CombatStats>();
+        if let Some(player_health) = player_health_store.get_mut(*player_entity) {
+            player_health.hp = i32::max(player_health.hp, player_health.max_hp / 2);
+        }
+    }
+
+    pub fn generate_world_map(&mut self, depth: i32) {
+        let mut map_builder = maps::random_builder(depth);
+        map_builder.build_map();
+
         let player_start: Position;
         {
             let mut worldmap_resource = self.world.write_resource::<Map>();
-            current_depth = worldmap_resource.depth;
-            map_builder = maps::random_builder(current_depth + 1);
-            map_builder.build_map();
             player_start = map_builder.get_starting_position();
             *worldmap_resource = map_builder.get_map();
         }
@@ -165,15 +183,6 @@ impl State {
         if let Some(viewshed) = viewshed_components.get_mut(*player_entity) {
             viewshed.dirty = true;
         }
-
-        let mut gamelog = self.world.fetch_mut::<GameLog>();
-        gamelog
-            .entries
-            .push("You descend to the next level, and take a moment to heal.".to_string());
-        let mut player_health_store = self.world.write_storage::<CombatStats>();
-        if let Some(player_health) = player_health_store.get_mut(*player_entity) {
-            player_health.hp = i32::max(player_health.hp, player_health.max_hp / 2);
-        }
     }
 
     fn game_over_cleanup(&mut self) {
@@ -185,35 +194,13 @@ impl State {
             self.world.delete_entity(*entity).expect("Deletion failed");
         }
 
-        let mut map_builder = maps::random_builder(1);
-        let player_start: Position;
         {
-            let mut map_resource = self.world.write_resource::<Map>();
-            map_builder.build_map();
-            player_start = map_builder.get_starting_position();
-            *map_resource = map_builder.get_map();
+            let player_entity = spawner::player(&mut self.world, 0, 0);
+            let mut player_entity_writer = self.world.write_resource::<Entity>();
+            *player_entity_writer = player_entity;
         }
 
-        map_builder.spawn_entities(&mut self.world);
-
-        let (player_x, player_y) = (player_start.x, player_start.y);
-        let player_entity = spawner::player(&mut self.world, player_x, player_y);
-        let mut player_pos = self.world.write_resource::<Point>();
-        *player_pos = Point::new(player_x, player_y);
-
-        let mut player_entity_writer = self.world.write_resource::<Entity>();
-        *player_entity_writer = player_entity;
-
-        let mut position_components = self.world.write_storage::<Position>();
-        if let Some(player_pos_comp) = position_components.get_mut(player_entity) {
-            player_pos_comp.x = player_x;
-            player_pos_comp.y = player_y;
-        }
-
-        let mut viewshed_components = self.world.write_storage::<Viewshed>();
-        if let Some(vs) = viewshed_components.get_mut(player_entity) {
-            vs.dirty = true;
-        }
+        self.generate_world_map(1);
     }
 }
 
