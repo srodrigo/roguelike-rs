@@ -7,7 +7,6 @@ mod components;
 use components::*;
 
 mod map;
-use map::*;
 
 mod player;
 
@@ -34,6 +33,7 @@ mod saveload;
 mod trigger;
 mod visibility;
 
+mod maps;
 mod random_table;
 
 fn main() -> rltk::BError {
@@ -93,15 +93,13 @@ fn main() -> rltk::BError {
 
     game_state.world.insert(particles::ParticlesBuilder::new());
 
-    let map = Map::new_map_rooms_and_corridors(1);
+    let (map, player_start) = maps::build_random_map(1);
 
     game_state.world.insert(RandomNumberGenerator::new());
 
-    for room in map.rooms.iter().skip(1) {
-        spawner::spawn_room(&mut game_state.world, room, 1);
-    }
+    maps::spawn(&map, &mut game_state.world, 1);
 
-    let (player_x, player_y) = map.rooms[0].center();
+    let (player_x, player_y) = (player_start.x, player_start.y);
     game_state.world.insert(Point::new(player_x, player_y));
 
     game_state.world.insert(map);

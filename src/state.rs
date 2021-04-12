@@ -14,6 +14,7 @@ use crate::{
     inventory::{ItemColecctionSystem, ItemDropSystem, ItemRemoveSystem, ItemUseSystem},
     map::{draw_map, Map, MAP_HEIGHT, MAP_WIDTH},
     map_indexing::MapIndexingSystem,
+    maps,
     melee_combat::MeleeCombatSystem,
     monster_ai::MonsterAI,
     particles::{self, ParticleSpawnSystem},
@@ -137,10 +138,13 @@ impl State {
 
         let worldmap;
         let current_depth;
+        let player_start: Position;
         {
             let mut worldmap_resource = self.world.write_resource::<Map>();
             current_depth = worldmap_resource.depth;
-            *worldmap_resource = Map::new_map_rooms_and_corridors(current_depth + 1);
+            let (map, start) = maps::build_random_map(current_depth + 1);
+            player_start = start;
+            *worldmap_resource = map;
             worldmap = worldmap_resource.clone();
         }
 
@@ -148,7 +152,7 @@ impl State {
             spawner::spawn_room(&mut self.world, room, current_depth + 1);
         }
 
-        let (player_x, player_y) = worldmap.rooms[0].center();
+        let (player_x, player_y) = (player_start.x, player_start.y);
         let mut player_pos = self.world.write_resource::<Point>();
         *player_pos = Point::new(player_pos.x, player_pos.y);
 
@@ -183,10 +187,13 @@ impl State {
             self.world.delete_entity(*entity).expect("Deletion failed");
         }
 
-        let map;
+        let map: Map;
+        let player_start: Position;
         {
             let mut map_resource = self.world.write_resource::<Map>();
-            *map_resource = Map::new_map_rooms_and_corridors(1);
+            let (new_map, start) = maps::build_random_map(1);
+            player_start = start;
+            *map_resource = new_map;
             map = map_resource.clone();
         }
 
@@ -194,7 +201,7 @@ impl State {
             spawner::spawn_room(&mut self.world, room, 1);
         }
 
-        let (player_x, player_y) = map.rooms[0].center();
+        let (player_x, player_y) = (player_start.x, player_start.y);
         let player_entity = spawner::player(&mut self.world, player_x, player_y);
         let mut player_pos = self.world.write_resource::<Point>();
         *player_pos = Point::new(player_x, player_y);
