@@ -7,15 +7,13 @@ mod simple_map;
 
 use self::simple_map::SimpleMapBuilder;
 
-trait MapBuilder {
-    fn build(depth: i32) -> (Map, Position);
-    fn spawn(map: &Map, world: &mut World, depth: i32);
+pub trait MapBuilder {
+    fn build_map(&mut self);
+    fn spawn_entities(&mut self, world: &mut World);
+    fn get_map(&mut self) -> Map;
+    fn get_starting_position(&mut self) -> Position;
 }
 
-pub fn build_random_map(depth: i32) -> (Map, Position) {
-    SimpleMapBuilder::build(depth)
-}
-
-pub fn spawn(map: &Map, world: &mut World, depth: i32) {
-    SimpleMapBuilder::spawn(map, world, depth);
+pub fn random_builder(depth: i32) -> Box<dyn MapBuilder> {
+    Box::new(SimpleMapBuilder::new(depth))
 }

@@ -93,11 +93,14 @@ fn main() -> rltk::BError {
 
     game_state.world.insert(particles::ParticlesBuilder::new());
 
-    let (map, player_start) = maps::build_random_map(1);
+    let mut map_builder = maps::random_builder(1);
+    map_builder.build_map();
+    let player_start = map_builder.get_starting_position();
+    let map = map_builder.get_map();
 
     game_state.world.insert(RandomNumberGenerator::new());
 
-    maps::spawn(&map, &mut game_state.world, 1);
+    map_builder.spawn_entities(&mut game_state.world);
 
     let (player_x, player_y) = (player_start.x, player_start.y);
     game_state.world.insert(Point::new(player_x, player_y));

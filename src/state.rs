@@ -14,7 +14,7 @@ use crate::{
     inventory::{ItemColecctionSystem, ItemDropSystem, ItemRemoveSystem, ItemUseSystem},
     map::{draw_map, Map, MAP_HEIGHT, MAP_WIDTH},
     map_indexing::MapIndexingSystem,
-    maps,
+    maps::{self},
     melee_combat::MeleeCombatSystem,
     monster_ai::MonsterAI,
     particles::{self, ParticleSpawnSystem},
@@ -136,21 +136,19 @@ impl State {
                 .expect("Unable to delete entity");
         }
 
-        let worldmap;
+        let mut map_builder;
         let current_depth;
         let player_start: Position;
         {
             let mut worldmap_resource = self.world.write_resource::<Map>();
             current_depth = worldmap_resource.depth;
-            let (map, start) = maps::build_random_map(current_depth + 1);
-            player_start = start;
-            *worldmap_resource = map;
-            worldmap = worldmap_resource.clone();
+            map_builder = maps::random_builder(current_depth + 1);
+            map_builder.build_map();
+            player_start = map_builder.get_starting_position();
+            *worldmap_resource = map_builder.get_map();
         }
 
-        for room in worldmap.rooms.iter().skip(1) {
-            spawner::spawn_room(&mut self.world, room, current_depth + 1);
-        }
+        map_builder.spawn_entities(&mut self.world);
 
         let (player_x, player_y) = (player_start.x, player_start.y);
         let mut player_pos = self.world.write_resource::<Point>();
@@ -187,19 +185,16 @@ impl State {
             self.world.delete_entity(*entity).expect("Deletion failed");
         }
 
-        let map: Map;
+        let mut map_builder = maps::random_builder(1);
         let player_start: Position;
         {
             let mut map_resource = self.world.write_resource::<Map>();
-            let (new_map, start) = maps::build_random_map(1);
-            player_start = start;
-            *map_resource = new_map;
-            map = map_resource.clone();
+            map_builder.build_map();
+            player_start = map_builder.get_starting_position();
+            *map_resource = map_builder.get_map();
         }
 
-        for room in map.rooms.iter().skip(1) {
-            spawner::spawn_room(&mut self.world, room, 1);
-        }
+        map_builder.spawn_entities(&mut self.world);
 
         let (player_x, player_y) = (player_start.x, player_start.y);
         let player_entity = spawner::player(&mut self.world, player_x, player_y);

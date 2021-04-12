@@ -4,8 +4,6 @@ use rltk::{Algorithm2D, BaseMap, Point, Rltk, RGB};
 use serde::{Deserialize, Serialize};
 use specs::{Entity, World};
 
-use crate::rect::Rect;
-
 #[derive(PartialEq, Copy, Clone, Serialize, Deserialize)]
 pub enum TileType {
     Wall,
@@ -14,14 +12,12 @@ pub enum TileType {
 }
 
 pub type MapTiles = Vec<TileType>;
-pub type Rooms = Vec<Rect>;
 pub type TilesVisibility = Vec<bool>;
 pub type TilesBlocking = Vec<bool>;
 
 #[derive(Default, Serialize, Deserialize, Clone)]
 pub struct Map {
     pub tiles: MapTiles,
-    pub rooms: Rooms,
     pub width: i32,
     pub height: i32,
     pub revealed_tiles: TilesVisibility,
@@ -43,7 +39,6 @@ impl Map {
     pub fn new(depth: i32) -> Map {
         Map {
             tiles: vec![TileType::Wall; MAP_SIZE],
-            rooms: Vec::new(),
             width: MAP_WIDTH as i32,
             height: MAP_HEIGHT as i32,
             revealed_tiles: vec![false; MAP_SIZE],
