@@ -12,6 +12,8 @@ pub trait MapBuilder {
     fn spawn_entities(&mut self, world: &mut World);
     fn get_map(&mut self) -> Map;
     fn get_starting_position(&mut self) -> Position;
+    fn get_snapshot_history(&self) -> Vec<Map>;
+    fn take_snapshot(&mut self);
 }
 
 pub fn random_builder(depth: i32) -> Box<dyn MapBuilder> {

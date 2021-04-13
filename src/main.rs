@@ -37,6 +37,8 @@ mod visibility;
 mod maps;
 mod random_table;
 
+const SHOW_MAPGEN_VISUALIZER: bool = true;
+
 fn main() -> rltk::BError {
     use rltk::RltkBuilder;
 
@@ -47,6 +49,12 @@ fn main() -> rltk::BError {
 
     let mut game_state = State {
         world: World::new(),
+        mapgen_next_state: Some(RunState::MainMenu {
+            menu_selection: gui::MainMenuSelection::NewGame,
+        }),
+        mapgen_history: Vec::new(),
+        mapgen_index: 0,
+        mapgen_timer: 0.0,
     };
     game_state.world.register::<Position>();
     game_state.world.register::<Renderable>();
@@ -85,9 +93,7 @@ fn main() -> rltk::BError {
     game_state.world.register::<SimpleMarker<SerializeMe>>();
     game_state.world.register::<SerializationHelper>();
 
-    game_state.world.insert(RunState::MainMenu {
-        menu_selection: gui::MainMenuSelection::NewGame,
-    });
+    game_state.world.insert(RunState::MapGeneration {});
     game_state
         .world
         .insert(SimpleMarkerAllocator::<SerializeMe>::new());

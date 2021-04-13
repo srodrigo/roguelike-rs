@@ -2,6 +2,7 @@ use super::common::{apply_horizontal_tunnel, apply_room_to_map, apply_vertical_t
 use crate::{
     components::Position,
     map::{Map, TileType},
+    SHOW_MAPGEN_VISUALIZER,
 };
 use crate::{rect::Rect, spawner};
 use rltk::RandomNumberGenerator;
@@ -15,6 +16,7 @@ pub struct SimpleMapBuilder {
     starting_position: Position,
     depth: i32,
     rooms: Rooms,
+    history: Vec<Map>,
 }
 
 impl MapBuilder for SimpleMapBuilder {
@@ -35,6 +37,20 @@ impl MapBuilder for SimpleMapBuilder {
     fn get_starting_position(&mut self) -> Position {
         self.starting_position.clone()
     }
+
+    fn get_snapshot_history(&self) -> Vec<Map> {
+        self.history.clone()
+    }
+
+    fn take_snapshot(&mut self) {
+        if SHOW_MAPGEN_VISUALIZER {
+            let mut snapshot = self.map.clone();
+            for tile in snapshot.revealed_tiles.iter_mut() {
+                *tile = true;
+            }
+            self.history.push(snapshot);
+        }
+    }
 }
 
 impl SimpleMapBuilder {
@@ -44,6 +60,7 @@ impl SimpleMapBuilder {
             starting_position: Position { x: 0, y: 0 },
             depth,
             rooms: Vec::new(),
+            history: Vec::new(),
         }
     }
 
@@ -78,6 +95,7 @@ impl SimpleMapBuilder {
                 }
 
                 self.rooms.push(new_room);
+                self.take_snapshot();
             }
         }
 

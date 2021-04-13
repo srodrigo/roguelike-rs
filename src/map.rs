@@ -2,7 +2,7 @@ use std::{collections::HashSet, usize};
 
 use rltk::{Algorithm2D, BaseMap, Point, Rltk, RGB};
 use serde::{Deserialize, Serialize};
-use specs::{Entity, World};
+use specs::Entity;
 
 #[derive(PartialEq, Copy, Clone, Serialize, Deserialize)]
 pub enum TileType {
@@ -130,9 +130,7 @@ impl BaseMap for Map {
     }
 }
 
-pub fn draw_map(world: &World, ctx: &mut Rltk) {
-    let map = world.fetch::<Map>();
-
+pub fn draw_map(map: &Map, ctx: &mut Rltk) {
     for x in 0..map.width {
         for y in 0..map.height {
             let idx = (x + y * map.width) as usize;

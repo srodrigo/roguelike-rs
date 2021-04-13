@@ -22,6 +22,7 @@ use crate::{
     saveload, spawner,
     trigger::TriggerSystem,
     visibility::VisibilitySystem,
+    SHOW_MAPGEN_VISUALIZER,
 };
 
 #[derive(PartialEq, Copy, Clone)]
@@ -41,6 +42,7 @@ pub enum RunState {
     MagicMapReveal {
         row: i32,
     },
+    MapGeneration,
     MainMenu {
         menu_selection: gui::MainMenuSelection,
     },
@@ -50,6 +52,10 @@ pub enum RunState {
 
 pub struct State {
     pub world: World,
+    pub mapgen_next_state: Option<RunState>,
+    pub mapgen_history: Vec<Map>,
+    pub mapgen_index: usize,
+    pub mapgen_timer: f32,
 }
 
 impl State {
@@ -156,8 +162,12 @@ impl State {
     }
 
     pub fn generate_world_map(&mut self, depth: i32) {
+        self.mapgen_index = 0;
+        self.mapgen_timer = 0.0;
+        self.mapgen_history.clear();
         let mut map_builder = maps::random_builder(depth);
         map_builder.build_map();
+        self.mapgen_history = map_builder.get_snapshot_history();
 
         let player_start: Position;
         {
@@ -215,13 +225,13 @@ impl GameState for State {
             RunState::MainMenu { .. } => {}
             RunState::GameOver { .. } => {}
             _ => {
-                draw_map(&self.world, ctx);
+                let map = self.world.fetch::<Map>();
+                draw_map(&map, ctx);
 
                 {
                     let positions = self.world.read_storage::<Position>();
                     let renderables = self.world.read_storage::<Renderable>();
                     let hidden = self.world.read_storage::<Hidden>();
-                    let map = self.world.fetch::<Map>();
 
                     let mut data = (&positions, &renderables, !&hidden)
                         .join()
@@ -386,6 +396,22 @@ impl GameState for State {
                     new_run_state = RunState::MonsterTurn;
                 } else {
                     new_run_state = RunState::MagicMapReveal { row: row + 1 };
+                }
+            }
+            RunState::MapGeneration => {
+                if !SHOW_MAPGEN_VISUALIZER {
+                    new_run_state = self.mapgen_next_state.unwrap();
+                }
+                ctx.cls();
+                draw_map(&self.mapgen_history[self.mapgen_index], ctx);
+
+                self.mapgen_timer += ctx.frame_time_ms;
+                if self.mapgen_timer > 300.0 {
+                    self.mapgen_timer = 0.0;
+                    self.mapgen_index += 1;
+                    if self.mapgen_index >= self.mapgen_history.len() {
+                        new_run_state = self.mapgen_next_state.unwrap();
+                    }
                 }
             }
             RunState::SaveGame => {
