@@ -1,4 +1,7 @@
-use super::common::{apply_horizontal_tunnel, apply_room_to_map, apply_vertical_tunnel};
+use super::{
+    common::{apply_horizontal_tunnel, apply_room_to_map, apply_vertical_tunnel},
+    Rooms, SnapshotHistory,
+};
 use crate::{
     components::Position,
     map::{Map, TileType},
@@ -9,14 +12,12 @@ use rltk::RandomNumberGenerator;
 
 use super::MapBuilder;
 
-pub type Rooms = Vec<Rect>;
-
 pub struct SimpleMapBuilder {
     map: Map,
     starting_position: Position,
     depth: i32,
     rooms: Rooms,
-    history: Vec<Map>,
+    history: SnapshotHistory,
 }
 
 impl MapBuilder for SimpleMapBuilder {
